@@ -95,7 +95,7 @@ async function runInterop(context: ParityContext, mode: "skill" | "registration"
     mode, skillName, serverName, bodyToken, challenge, rejectedChallenge, sandboxHome: host.sandbox.home,
     nativeClaudeSkillsDisabled: host.sandbox.env["OPENCODE_DISABLE_CLAUDE_CODE_SKILLS"],
     sourceSha256: Object.fromEntries(["plugin-v2/mcp-bridge-register.ts", "plugin/skill-context.ts", "tools/skill-mcp/tools.ts"].map((file) => [file, sha256(join(context.sourceDirectory, "packages/omo-opencode/src", file))])),
-    submittedTools: host.submittedTools(), schemas, requests, parts, mcpRegistry: registry, mcpEvents: fixture.events(),
+    submittedTools: await host.submittedTools(), schemas, requests, parts, mcpRegistry: registry, mcpEvents: fixture.events(),
   }
   writeFileSync(join(host.sandbox.root, "interop-receipt.json"), JSON.stringify(receipt, null, 2) + "\n")
   assert.equal(terminal.type, "session.execution.succeeded", "Native interop turn failed")

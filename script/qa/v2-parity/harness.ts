@@ -6,6 +6,7 @@ import { z } from "zod"
 import type { Engine, Harness, JsonObject, NativeEvent, ParityContext, ScenarioOptions } from "./contracts"
 import { createScriptedProvider } from "./provider"
 import { retainNativeScratch } from "./sandbox-storage"
+import { readToolSubmissions } from "./tool-submissions"
 
 export async function loadHarness(toolsDirectory: string): Promise<Harness> {
   const module = (name: string) => pathToFileURL(join(toolsDirectory, "_lib/opencode-v2-probe", name)).href
@@ -140,8 +141,7 @@ export async function createScenarioHost(context: ParityContext, options: Scenar
       request: (path: string, input?: Parameters<Harness["request"]>[2]) => harness.request(running, path, input),
       subscribe: (predicate: (event: NativeEvent) => boolean) => harness.subscribeEvent(context, running, predicate),
       submittedTools() {
-        const log = readFileSync(join(sandbox.env.TMPDIR, "oh-my-opencode.log"), "utf8")
-        return [...new Set([...log.matchAll(/tool definitions submitted (\{[^\n]+\})/g)].flatMap((match) => z.object({ names: z.array(z.string()) }).parse(JSON.parse(match[1] ?? "")).names))]
+        return readToolSubmissions(join(sandbox.env.TMPDIR, "oh-my-opencode.log"), context.signal)
       },
       async [Symbol.asyncDispose]() { await dispose() },
     }

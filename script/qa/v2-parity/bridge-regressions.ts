@@ -112,7 +112,7 @@ async function toolTurn(context: ParityContext, spec: { readonly id: string; rea
     assert.equal(receipt.nativeGlobWouldLookSuccessful, true, "Glob did not return the fixture filename")
     assert.equal(receipt.omoGlobResult, true, "Glob returned a native result instead of the OMO implementation")
   } else {
-    const submitted = host.submittedTools()
+    const submitted = await host.submittedTools()
     assert.ok(submitted.includes("skill_mcp"), "OMO setup did not submit its distinctive bridged tool")
     const missing = submitted.filter((name) => !names.includes(name))
     assert.deepEqual(missing, [], "OMO tool schemas were submitted but skipped by native admission (seen.ref/codemode regression)")
@@ -130,7 +130,7 @@ export const bridgeRegressionProbes: readonly ParityProbe[] = [
       const inventory = await host.request("/api/plugin")
       assert.equal(inventory.status, 200)
       const plugin = pluginSchema.parse(inventory.body).data.find((entry) => entry.id === "oh-my-openagent")
-      const submitted = host.submittedTools()
+      const submitted = await host.submittedTools()
       const receipt = { ...provenance(context), plugin, submitted, providerRequests: host.provider.requests.length }
       writeFileSync(join(host.sandbox.root, "directory-receipt.json"), JSON.stringify(receipt, null, 2) + "\n")
       assert.equal(plugin?.state.status, "active", "OMO directory did not become active")
