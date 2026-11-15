@@ -217,6 +217,24 @@ describe("tui-sidebar mirror IPC", () => {
     expect(statSync(mirrorFilePath(projectDir)).mode & 0o777).toBe(0o600)
   })
 
+  it("#given a valid snapshot #when writing #then it does not fsync the regenerable mirror", () => {
+    // given
+    const projectDir = makeTempDir("no-fsync")
+    const expected = snapshotFor(projectDir, Date.now())
+    let fsyncCalls = 0
+
+    // when
+    writeMirror(projectDir, expected, {
+      fsyncSync: () => {
+        fsyncCalls++
+      },
+    })
+
+    // then
+    expect(fsyncCalls).toBe(0)
+    expect(readMirror(projectDir)).toEqual(expected)
+  })
+
   it("#given a polling mirror reader #when the file is unchanged, rewritten, removed, or goes stale #then it matches readMirror", () => {
     // given
     const projectDir = makeTempDir("cached-reader")
