@@ -12,6 +12,7 @@ import {
   DEFAULT_RECOVERY_SWEEP_MIN_AGE_MS, RECOVERY_SWEEP_BUDGET, RECOVERY_SWEEP_INTERVAL_MS,
   RECOVERY_SWEEP_START_DELAY_MS, sweepTaskRecoveryRecords,
 } from "./task-recovery-sweep"
+import { currentOwnerProcess } from "./owner-process-identity"
 import { probeTaskOwner, TaskWorkerOwnership } from "./task-worker-ownership"
 
 const RecoverableSessionSchema = z.object({
@@ -118,10 +119,11 @@ export class TaskRecovery {
       }
       if (this.closed) throw new TaskRecoveryError(sessionId, "owner shut down")
       const owner = await this.worker.open()
+      const ownerProcess = await currentOwnerProcess()
       const generation = randomUUID()
       const record: TaskRecoveryRecord = {
         version: 1, taskId: task.id, sessionId, parentSessionId: previous?.parentSessionId ?? task.parentSessionId,
-        agent: task.agent, cwd, owner, generation, tools,
+        agent: task.agent, cwd, owner, ownerProcess, generation, tools,
         model: task.model, category: task.category, teamRunId: task.teamRunId,
         concurrencyGroup: task.concurrencyGroup, sessionPermission: task.sessionPermission,
       }
@@ -155,7 +157,7 @@ export class TaskRecovery {
         ? { providerID: last.providerID, modelID: last.modelID, variant: last.variant ?? undefined } : undefined)
       if (this.closed) throw new TaskRecoveryError(sessionId, "recovering owner shut down")
       const generation = randomUUID()
-      this.store.write({ ...record, model, owner, generation })
+      this.store.write({ ...record, model, owner, ownerProcess: await currentOwnerProcess(), generation })
       this.generations.set(sessionId, generation)
       return {
         id: record.taskId, sessionId, parentSessionId: record.parentSessionId, parentMessageId: "",

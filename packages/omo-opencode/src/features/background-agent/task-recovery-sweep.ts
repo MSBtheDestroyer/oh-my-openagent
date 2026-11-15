@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { readdir, readFile, stat, unlink, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
-import { TaskOwnerSchema, TaskRecoveryError, type TaskRecoveryStore } from "./task-recovery-store"
+import { OwnerProcessSchema, TaskOwnerSchema, TaskRecoveryError, type TaskRecoveryStore } from "./task-recovery-store"
 import { probeTaskOwner } from "./task-worker-ownership"
 
 /*
@@ -31,7 +31,7 @@ const ENTRY = /^([0-9a-f]{64})\.json(?:\.(lock|[0-9a-f-]{36}))?$/
 
 const SweepRecordSchema = z.object({
   version: z.literal(1), sessionId: z.string().min(1), cwd: z.string().min(1),
-  generation: z.string().uuid(), owner: TaskOwnerSchema,
+  generation: z.string().uuid(), owner: TaskOwnerSchema, ownerProcess: OwnerProcessSchema.optional(),
 }).passthrough()
 
 export type ChildPresence = "exists" | "missing" | "unknown"

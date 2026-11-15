@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto"
 import { createServer, get, type Server } from "node:http"
 import { hostname } from "node:os"
 import { z } from "zod"
-import type { TaskOwner } from "./task-recovery-store"
+import { readProcessStart } from "./owner-process-identity"
+import type { OwnerProcess, TaskOwner } from "./task-recovery-store"
 
 const OwnerReplySchema = z.object({
   owner: z.string().uuid(), sessionId: z.string(), generation: z.string().uuid(),
@@ -62,8 +63,27 @@ export class TaskWorkerOwnership {
   }
 }
 
-export function probeTaskOwner(record: { readonly owner: TaskOwner; readonly sessionId: string; readonly generation: string }): Promise<"dead" | "owned" | "unknown"> {
-  if (record.owner.hostname !== hostname()) return Promise.resolve("unknown")
+type OwnerProbeRecord = {
+  readonly owner: TaskOwner; readonly ownerProcess?: OwnerProcess; readonly sessionId: string; readonly generation: string
+}
+
+/**
+ * A recorded owner process that is gone, or whose pid now belongs to a
+ * process started at another time, is dead without any network call: its
+ * loopback port may have been reused by an unrelated listener. Only an owner
+ * process that is still the same process, or a record without process
+ * identity, is asked over its port.
+ */
+export async function probeTaskOwner(record: OwnerProbeRecord): Promise<"dead" | "owned" | "unknown"> {
+  if (record.owner.hostname !== hostname()) return "unknown"
+  if (record.ownerProcess) {
+    const liveness = await readProcessStart(record.ownerProcess.pid)
+    if (liveness === "gone" || (typeof liveness === "object" && liveness.start !== record.ownerProcess.start)) return "dead"
+  }
+  return requestOwnerState(record)
+}
+
+function requestOwnerState(record: OwnerProbeRecord): Promise<"dead" | "owned" | "unknown"> {
   const url = new URL(`http://127.0.0.1:${record.owner.port}/owner`)
   url.searchParams.set("owner", record.owner.id)
   url.searchParams.set("session", record.sessionId)

@@ -25,6 +25,7 @@ import { _resetForTesting as resetProcessCleanupState } from "./process-cleanup"
 import { clearBackgroundTaskRegistryForTesting } from "./task-registry"
 import type { BackgroundTask, ResumeInput } from "./types"
 import type { TaskRecovery } from "./task-recovery"
+import { TaskRecoveryStore } from "./task-recovery-store"
 import { getSessionTools } from "../../shared/session-tools-store"
 
 afterAll(() => { mock.restore() })
@@ -3288,6 +3289,7 @@ describe("BackgroundManager restart recovery", () => {
       expect(resumed.category).toBe("quick")
       expect(resumed.teamRunId).toBe("team-recovery")
       expect(second.getTask(resumed.id)).toBe(resumed)
+      expect(new TaskRecoveryStore().read(sessionId)?.ownerProcess?.pid).toBe(process.pid)
       await continued.promise
       expect(calls).toHaveLength(2)
       expect(calls[1]?.body.variant).toBe("medium")

@@ -10,6 +10,11 @@ export const TaskOwnerSchema = z.object({
   port: z.number().int().min(1).max(65535),
 }).strict()
 
+export const OwnerProcessSchema = z.object({
+  pid: z.number().int().positive(),
+  start: z.string().min(1),
+}).strict()
+
 export const TaskRecoverySchema = z.object({
   version: z.literal(1),
   sessionId: z.string().min(1),
@@ -19,6 +24,7 @@ export const TaskRecoverySchema = z.object({
   cwd: z.string().min(1),
   generation: z.string().uuid(),
   owner: TaskOwnerSchema,
+  ownerProcess: OwnerProcessSchema.optional(),
   category: z.string().optional(),
   teamRunId: z.string().optional(),
   concurrencyGroup: z.string().optional(),
@@ -35,6 +41,7 @@ export const TaskRecoverySchema = z.object({
 
 export type TaskRecoveryRecord = z.infer<typeof TaskRecoverySchema>
 export type TaskOwner = z.infer<typeof TaskOwnerSchema>
+export type OwnerProcess = z.infer<typeof OwnerProcessSchema>
 
 export class TaskRecoveryError extends Error {
   constructor(readonly sessionId: string, readonly reason: string) {
