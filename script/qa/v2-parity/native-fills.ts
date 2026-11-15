@@ -23,7 +23,7 @@ export const nativeFillProbes: readonly ParityProbe[] = scenarios.map(([scenario
   async run(context) {
     let captureRoot = ""
     const scratch = context.harness.createSandbox(context, `native-fill-${scenario}`)
-    const outcome = await withNativeHost<unknown>({ evidenceRoot: join(context.root, "native-fills"), engineRoot: scratch.scratchRoot, binary: context.binary, plugin: context.pluginBundle, scenario },
+    const outcome = await withNativeHost<unknown>({ evidenceRoot: join(context.root, "native-fills"), ...(scratch.scratchRoot === undefined ? {} : { engineRoot: scratch.scratchRoot }), binary: context.binary, plugin: context.pluginBundle, scenario },
       async (host: ScenarioHost) => {
         captureRoot = host.root
         const info = engineInfo.parse(await host.api("/api/info"))
