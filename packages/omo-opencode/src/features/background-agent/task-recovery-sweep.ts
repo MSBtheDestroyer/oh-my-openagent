@@ -80,6 +80,7 @@ async function generationOf(file: string): Promise<string | undefined> {
 async function judge(
   input: TaskRecoverySweepInput,
   file: string,
+  mtimeMs: number,
   hash: string,
   suffix: string | undefined,
 ): Promise<Verdict | undefined> {
@@ -104,7 +105,7 @@ async function judge(
   if (!record.success || createHash("sha256").update(record.data.sessionId).digest("hex") !== hash) {
     return { reason: "invalid-record" }
   }
-  if ((await (input.probeOwner ?? probeTaskOwner)(record.data)) !== "dead") return undefined
+  if ((await (input.probeOwner ?? probeTaskOwner)({ ...record.data, recordedAt: mtimeMs })) !== "dead") return undefined
   if ((await input.childPresence(record.data.sessionId)) !== "missing") return undefined
   return { reason: "child-gone", sessionId: record.data.sessionId, generation: record.data.generation }
 }
@@ -184,7 +185,7 @@ export async function sweepTaskRecoveryRecords(input: TaskRecoverySweepInput): P
     if (now() - mtimeMs < input.minAgeMs) continue
     examined += 1
     next = name
-    const verdict = await judge(input, file, hash, suffix)
+    const verdict = await judge(input, file, mtimeMs, hash, suffix)
     if (verdict === undefined) continue
     if (input.dryRun || (await remove(input, file, mtimeMs, verdict)))
       removed.push({ file: name, reason: verdict.reason })

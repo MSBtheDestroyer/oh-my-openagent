@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import { statSync } from "node:fs"
 import { z } from "zod"
 import { dispatchInternalPrompt, releasePromptAsyncReservation } from "../../shared/prompt-async-gate"
 import { isAmbiguousPostDispatchPromptFailure } from "../../shared/prompt-failure-classifier"
@@ -181,7 +182,10 @@ export class TaskRecovery {
       const owner = await this.worker.open()
       const ownedHere =
         record.owner.id === owner.id && record.owner.hostname === owner.hostname && record.owner.port === owner.port
-      if (!ownedHere && (await probeTaskOwner(record)) !== "dead")
+      if (
+        !ownedHere &&
+        (await probeTaskOwner({ ...record, recordedAt: statSync(this.store.path(sessionId)).mtimeMs })) !== "dead"
+      )
         throw new TaskRecoveryError(sessionId, "owner is live or its liveness is unknown")
       const response = await this.client.session.get({ path: { id: sessionId }, query: { directory: record.cwd } })
       const session = RecoverableSessionSchema.safeParse(response.data)

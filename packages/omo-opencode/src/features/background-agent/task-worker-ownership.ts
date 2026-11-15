@@ -3,6 +3,7 @@ import { createServer, get, type Server } from "node:http"
 import { hostname } from "node:os"
 import { z } from "zod"
 import { readProcessStart } from "./owner-process-identity"
+import { portListenersStartedAfter } from "./port-listener-age"
 import type { OwnerProcess, TaskOwner } from "./task-recovery-store"
 
 const OwnerReplySchema = z
@@ -72,14 +73,17 @@ type OwnerProbeRecord = {
   readonly ownerProcess?: OwnerProcess
   readonly sessionId: string
   readonly generation: string
+  readonly recordedAt?: number
 }
 
 /**
  * A recorded owner process that is gone, or whose pid now belongs to a
  * process started at another time, is dead without any network call: its
- * loopback port may have been reused by an unrelated listener. Only an owner
- * process that is still the same process, or a record without process
- * identity, is asked over its port.
+ * loopback port may have been reused by an unrelated listener. A record
+ * without process identity is dead when every listener on its port belongs
+ * to a process started after the record was written (`recordedAt`, the
+ * record file's mtime). Only an owner that may still be listening is asked
+ * over its port.
  */
 export async function probeTaskOwner(record: OwnerProbeRecord): Promise<"dead" | "owned" | "unknown"> {
   if (record.owner.hostname !== hostname()) return "unknown"
@@ -87,6 +91,11 @@ export async function probeTaskOwner(record: OwnerProbeRecord): Promise<"dead" |
     const liveness = await readProcessStart(record.ownerProcess.pid)
     if (liveness === "gone" || (typeof liveness === "object" && liveness.start !== record.ownerProcess.start))
       return "dead"
+  } else if (
+    record.recordedAt !== undefined &&
+    (await portListenersStartedAfter(record.owner.port, record.recordedAt))
+  ) {
+    return "dead"
   }
   return requestOwnerState(record)
 }

@@ -73,6 +73,79 @@ test("an owner pid now held by a different process is dead without a request", a
   }
 })
 
+async function listenInNewProcess(port: number) {
+  const script = fileURLToPath(new URL("./task-worker-ownership.test-listener.ts", import.meta.url))
+  const child = spawn(process.execPath, [script, String(port)], { stdio: ["ignore", "pipe", "inherit"] })
+  const lines: string[] = []
+  const output = createInterface({ input: child.stdout })
+  const ready = new Promise<void>((resolve) =>
+    output.on("line", (line) => {
+      lines.push(line)
+      if (line === "listening") resolve()
+    }),
+  )
+  const closed = once(output, "close", { signal: AbortSignal.timeout(10000) })
+  await Promise.race([
+    ready,
+    once(child, "exit").then(() => {
+      throw new Error("listener exited before listening")
+    }),
+  ])
+  return {
+    stop: async () => {
+      child.kill("SIGKILL")
+      await closed
+      return lines.filter((line) => line === "connection").length
+    },
+  }
+}
+
+test.skipIf(process.platform !== "linux")(
+  "a pid-less record whose port is held by a process started after the record is dead without a request",
+  async () => {
+    // given a pre-ownerProcess record written a minute ago by an owner that has since gone
+    const worker = new TaskWorkerOwnership(async () => "owned")
+    const owner = await worker.open()
+    worker.close()
+    const recordedAt = Date.now() - 60_000
+    // and a process started after that write now listens on the owner's port
+    const stranger = await listenInNewProcess(owner.port)
+    let state: string
+    let connections: number
+    try {
+      // when
+      state = await probeTaskOwner({ owner, recordedAt, sessionId: "child", generation: crypto.randomUUID() })
+    } finally {
+      connections = await stranger.stop()
+    }
+    // then
+    expect(state).toBe("dead")
+    expect(connections).toBe(0)
+  },
+)
+
+test("a pid-less record whose port is held by a process older than the record is still asked and stays unknown", async () => {
+  // given a listener in this test process, which may be the owner since it existed when the record was written
+  const worker = new TaskWorkerOwnership(async () => "owned")
+  const owner = await worker.open()
+  worker.close()
+  const stranger = await listenCountingConnections(owner.port)
+  try {
+    // when
+    const state = await probeTaskOwner({
+      owner,
+      recordedAt: Date.now(),
+      sessionId: "child",
+      generation: crypto.randomUUID(),
+    })
+    // then
+    expect(state).toBe("unknown")
+    expect(stranger.connections()).toBe(1)
+  } finally {
+    stranger.close()
+  }
+})
+
 test("worker responder disappears on actual Bun worker termination while enclosing PID survives", async () => {
   const worker = new Worker(new URL("./task-worker-ownership.test-worker.ts", import.meta.url))
   const ready = once(worker, "message", { signal: AbortSignal.timeout(5000) })

@@ -6,7 +6,8 @@ import { join } from "node:path"
 import type { PluginInput } from "@opencode-ai/plugin"
 import { openChildSessionPresence } from "./child-session-presence"
 import { BackgroundManager } from "./manager"
-import { TaskRecoveryStore, type TaskOwner } from "./task-recovery-store"
+import { currentOwnerProcess } from "./owner-process-identity"
+import { TaskRecoveryStore, type OwnerProcess, type TaskOwner } from "./task-recovery-store"
 import { sweepTaskRecoveryRecords, type ChildPresence } from "./task-recovery-sweep"
 import { TaskWorkerOwnership } from "./task-worker-ownership"
 
@@ -30,7 +31,13 @@ async function deadOwner(): Promise<TaskOwner> {
   return owner
 }
 
-function writeRecord(store: TaskRecoveryStore, sessionId: string, owner: TaskOwner, ageMs: number): string {
+function writeRecord(
+  store: TaskRecoveryStore,
+  sessionId: string,
+  owner: TaskOwner,
+  ageMs: number,
+  ownerProcess?: OwnerProcess,
+): string {
   mkdirSync(store.root, { recursive: true, mode: 0o700 })
   store.write({
     version: 1,
@@ -41,6 +48,7 @@ function writeRecord(store: TaskRecoveryStore, sessionId: string, owner: TaskOwn
     cwd: tmpdir(),
     generation: crypto.randomUUID(),
     owner,
+    ownerProcess,
     tools: {},
   })
   const path = store.path(sessionId)
@@ -113,7 +121,7 @@ describe("task recovery sweep", () => {
     // given
     const store = new TaskRecoveryStore()
     const kept = [
-      writeRecord(store, "live-owner", await liveOwner(), 2 * DAY_MS),
+      writeRecord(store, "live-owner", await liveOwner(), 2 * DAY_MS, await currentOwnerProcess()),
       writeRecord(store, "existing-child", await deadOwner(), 2 * DAY_MS),
       writeRecord(store, "unknown-child", await deadOwner(), 2 * DAY_MS),
       writeRecord(store, "young-child", await deadOwner(), 60_000),
