@@ -21,17 +21,22 @@ export function readProcessStart(pid: number): Promise<ProcessLiveness> {
 let current: Promise<OwnerProcess | undefined> | undefined
 
 export function currentOwnerProcess(): Promise<OwnerProcess | undefined> {
-  current ??= readProcessStart(process.pid).then((state) => typeof state === "object" ? { pid: process.pid, start: state.start } : undefined)
+  current ??= readProcessStart(process.pid).then((state) =>
+    typeof state === "object" ? { pid: process.pid, start: state.start } : undefined,
+  )
   return current
 }
 
 let bootId: Promise<string | undefined> | undefined
 
 function readBootId(): Promise<string | undefined> {
-  bootId ??= readFile("/proc/sys/kernel/random/boot_id", "utf8").then((id) => id.trim() || undefined, (error: unknown) => {
-    if (!(error instanceof Error)) throw error
-    return undefined
-  })
+  bootId ??= readFile("/proc/sys/kernel/random/boot_id", "utf8").then(
+    (id) => id.trim() || undefined,
+    (error: unknown) => {
+      if (!(error instanceof Error)) throw error
+      return undefined
+    },
+  )
   return bootId
 }
 
@@ -39,7 +44,9 @@ async function readLinuxProcessStart(pid: number): Promise<ProcessLiveness> {
   const boot = await readBootId()
   if (boot === undefined) return "unknown"
   let stat: string
-  try { stat = await readFile(`/proc/${pid}/stat`, "utf8") } catch (error) {
+  try {
+    stat = await readFile(`/proc/${pid}/stat`, "utf8")
+  } catch (error) {
     if (!(error instanceof Error)) throw error
     return "code" in error && (error.code === "ENOENT" || error.code === "ESRCH") ? "gone" : "unknown"
   }
@@ -52,11 +59,16 @@ async function readLinuxProcessStart(pid: number): Promise<ProcessLiveness> {
 
 function readDarwinProcessStart(pid: number): Promise<ProcessLiveness> {
   return new Promise((resolve) => {
-    execFile("/bin/ps", ["-o", "stat=", "-o", "lstart=", "-p", String(pid)], { env: { ...process.env, LC_ALL: "C" }, timeout: 5000 }, (error, stdout) => {
-      const [state, ...start] = stdout.trim().split(/\s+/)
-      if (!state) resolve(error?.code === 1 ? "gone" : "unknown")
-      else if (state.startsWith("Z")) resolve("gone")
-      else resolve(start.length > 0 ? { start: start.join(" ") } : "unknown")
-    })
+    execFile(
+      "/bin/ps",
+      ["-o", "stat=", "-o", "lstart=", "-p", String(pid)],
+      { env: { ...process.env, LC_ALL: "C" }, timeout: 5000 },
+      (error, stdout) => {
+        const [state, ...start] = stdout.trim().split(/\s+/)
+        if (!state) resolve(error?.code === 1 ? "gone" : "unknown")
+        else if (state.startsWith("Z")) resolve("gone")
+        else resolve(start.length > 0 ? { start: start.join(" ") } : "unknown")
+      },
+    )
   })
 }

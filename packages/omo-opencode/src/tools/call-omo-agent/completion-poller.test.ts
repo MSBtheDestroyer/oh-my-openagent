@@ -48,11 +48,7 @@ describe("waitForCompletion", () => {
 
     try {
       // when
-      const result = waitForCompletion(
-        "ses-undurable",
-        createToolContext(),
-        createContext({ status, messages }),
-      )
+      const result = waitForCompletion("ses-undurable", createToolContext(), createContext({ status, messages }))
 
       // then
       await expect(result).rejects.toThrow("Prompt was not durably accepted by OpenCode")
@@ -81,19 +77,12 @@ describe("waitForCompletion", () => {
 
     const status = mock(async () => ({ data: { "ses-complete": { type: "idle" } } }))
     const messages = mock(async () => ({
-      data: [
-        { info: { id: "msg-user", role: "user" } },
-        { info: { id: "msg-assistant", role: "assistant" } },
-      ],
+      data: [{ info: { id: "msg-user", role: "user" } }, { info: { id: "msg-assistant", role: "assistant" } }],
     }))
 
     try {
       // when
-      await waitForCompletion(
-        "ses-complete",
-        createToolContext(),
-        createContext({ status, messages }),
-      )
+      await waitForCompletion("ses-complete", createToolContext(), createContext({ status, messages }))
 
       // then
       expect(messages).toHaveBeenCalled()
@@ -122,16 +111,16 @@ describe("waitForCompletion", () => {
         return { data: { "ses-hour": { type: statusCalls <= 6 ? "busy" : "idle" } } }
       })
       const messages = mock(async () => ({
-        data: [
-          { info: { id: "msg-user", role: "user" } },
-          { info: { id: "msg-assistant", role: "assistant" } },
-        ],
+        data: [{ info: { id: "msg-user", role: "user" } }, { info: { id: "msg-assistant", role: "assistant" } }],
       }))
       const restore = () => {
         Date.now = originalDateNow
         globalThis.setTimeout = originalSetTimeout
       }
-      return { run: waitForCompletion("ses-hour", createToolContext(), createContext({ status, messages }), timeoutMs), restore }
+      return {
+        run: waitForCompletion("ses-hour", createToolContext(), createContext({ status, messages }), timeoutMs),
+        restore,
+      }
     }
 
     test("#when no limit is configured #then the 5 minute default ends the wait", async () => {
@@ -165,7 +154,13 @@ describe("waitForCompletion", () => {
     controller.abort()
 
     // when
-    const result = await waitForCompletion("ses-busy", createToolContext(), createContext({ status, messages }), 60_000, controller.signal)
+    const result = await waitForCompletion(
+      "ses-busy",
+      createToolContext(),
+      createContext({ status, messages }),
+      60_000,
+      controller.signal,
+    )
 
     // then
     expect(result).toBe("handed-off")

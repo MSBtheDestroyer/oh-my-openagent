@@ -27,10 +27,7 @@ type ShellEnvInput = {
   readonly callID?: string
 }
 
-export function createNonInteractiveEnvHook(
-  _ctx: PluginInput,
-  config?: { readonly editor_policy?: EditorPolicy },
-) {
+export function createNonInteractiveEnvHook(_ctx: PluginInput, config?: { readonly editor_policy?: EditorPolicy }) {
   const editorPolicy = config?.editor_policy ?? "fail_closed"
   return {
     "shell.env": async (input: ShellEnvInput, output: { env: Record<string, string> }): Promise<void> => {
@@ -40,15 +37,12 @@ export function createNonInteractiveEnvHook(
         if (!Object.hasOwn(output.env, name)) output.env[name] = value
       }
     },
-    "experimental.chat.system.transform": async (
-      _input: unknown,
-      output: { system: string[] },
-    ): Promise<void> => {
+    "experimental.chat.system.transform": async (_input: unknown, output: { system: string[] }): Promise<void> => {
       output.system.push(getBashEnvGuidance(editorPolicy))
     },
     "tool.execute.before": async (
       input: { tool: string; sessionID: string; callID: string },
-      output: { args: Record<string, unknown>; message?: string }
+      output: { args: Record<string, unknown>; message?: string },
     ): Promise<void> => {
       if (input.tool.toLowerCase() !== "bash") {
         return
@@ -63,7 +57,6 @@ export function createNonInteractiveEnvHook(
       if (bannedCmd) {
         output.message = `Warning: '${bannedCmd}' is an interactive command that may hang in non-interactive environments.`
       }
-
     },
   }
 }

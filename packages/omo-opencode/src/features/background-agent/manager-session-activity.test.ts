@@ -345,7 +345,13 @@ describe("BackgroundManager fork tool call count", () => {
     const toolPart = (id: string, start: number) => ({
       type: "message.part.updated",
       properties: {
-        part: { id, sessionID: "ses-active", type: "tool", tool: "bash", state: { status: "completed", time: { start, end: start + 10 } } },
+        part: {
+          id,
+          sessionID: "ses-active",
+          type: "tool",
+          tool: "bash",
+          state: { status: "completed", time: { start, end: start + 10 } },
+        },
       },
     })
 

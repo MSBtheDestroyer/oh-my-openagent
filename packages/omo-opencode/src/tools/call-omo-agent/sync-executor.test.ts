@@ -82,10 +82,7 @@ function createToolContext(): ToolContext {
   }
 }
 
-function createContext(
-  promptAsync: ReturnType<typeof mock>,
-  status?: () => Promise<unknown>,
-) {
+function createContext(promptAsync: ReturnType<typeof mock>, status?: () => Promise<unknown>) {
   return {
     client: {
       session: {
@@ -127,7 +124,11 @@ describe("executeSync", () => {
 
     //#then
     expect(adoptCalls).toHaveLength(1)
-    expect(adoptCalls[0]).toMatchObject({ taskId: "call_ses-test", sessionId: "ses-test-123", parentSessionId: "parent-session" })
+    expect(adoptCalls[0]).toMatchObject({
+      taskId: "call_ses-test",
+      sessionId: "ses-test-123",
+      parentSessionId: "parent-session",
+    })
     expect(result).toContain("background_task_id: call_ses-test")
     expect(abort).not.toHaveBeenCalled()
     expect(deps.processMessages).not.toHaveBeenCalled()
@@ -417,13 +418,7 @@ describe("executeSync", () => {
     ]
 
     //#when
-    await executeSync(
-      args,
-      toolContext,
-      createContext(recorder.promptAsync) as never,
-      deps,
-      fallbackChain
-    )
+    await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, deps, fallbackChain)
 
     //#then
     expect(deps.setSessionFallbackChain).toHaveBeenCalledWith("ses-fallback", fallbackChain)
@@ -433,7 +428,10 @@ describe("executeSync", () => {
     //#given
     const executeSync = await importExecuteSync()
     const { _resetForTesting, getSessionAgent } = require("../../features/claude-code-session-state")
-    const { clearAllDelegatedChildSessionBootstrap, getDelegatedChildSessionBootstrap } = require("../../shared/delegated-child-session-bootstrap")
+    const {
+      clearAllDelegatedChildSessionBootstrap,
+      getDelegatedChildSessionBootstrap,
+    } = require("../../shared/delegated-child-session-bootstrap")
     const { clearSessionTools, getSessionTools } = require("../../shared/session-tools-store")
     const deps = createDependencies({
       createOrGetSession: mock(async () => ({ sessionID: "ses-call-bootstrap", isNew: true })),
@@ -458,19 +456,11 @@ describe("executeSync", () => {
       prompt: "collect bootstrap evidence",
       run_in_background: false,
     }
-    const fallbackChain = [
-      { providers: ["openai"], model: "gpt-5.4", variant: "high" },
-    ]
+    const fallbackChain = [{ providers: ["openai"], model: "gpt-5.4", variant: "high" }]
 
     try {
       //#when
-      await executeSync(
-        args,
-        toolContext,
-        createContext(recorder.promptAsync) as never,
-        deps,
-        fallbackChain
-      )
+      await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, deps, fallbackChain)
 
       //#then
       expect(observed[0]?.agent).toBe("explore")
@@ -619,10 +609,7 @@ describe("executeSync", () => {
     const result = await executeSync(
       args,
       toolContext,
-      createContext(
-        recorder.promptAsync,
-        async () => ({ data: { "ses-active-reuse": { type: "busy" } } }),
-      ) as never,
+      createContext(recorder.promptAsync, async () => ({ data: { "ses-active-reuse": { type: "busy" } } })) as never,
       deps,
     )
 

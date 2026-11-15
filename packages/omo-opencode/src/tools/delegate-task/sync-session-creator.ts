@@ -14,8 +14,10 @@ export async function createSyncSession(
     category?: string
     categoryModel?: DelegatedModelConfig
     forkFromParent?: boolean
-  }
-): Promise<{ ok: true; sessionID: string; parentDirectory: string; anchorMessageCount?: number } | { ok: false; error: string }> {
+  },
+): Promise<
+  { ok: true; sessionID: string; parentDirectory: string; anchorMessageCount?: number } | { ok: false; error: string }
+> {
   const parentSession = await client.session.get({ path: { id: input.parentSessionID } }).catch(() => null)
   const parentDirectory = parentSession?.data?.directory ?? input.defaultDirectory
 

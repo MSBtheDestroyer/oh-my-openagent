@@ -50,9 +50,7 @@ function convertSDKMessageToStoredMessage(msg: SDKMessage): StoredMessage | null
 
   return {
     agent: info.agent,
-    model: providerID && modelID
-      ? { providerID, modelID, ...(variant ? { variant } : {}) }
-      : undefined,
+    model: providerID && modelID ? { providerID, modelID, ...(variant ? { variant } : {}) } : undefined,
     tools: info.tools,
   }
 }
@@ -101,7 +99,9 @@ function newestFirst(messages: readonly SDKMessage[]): { readonly stored: Stored
     .sort((left, right) => right.createdAt - left.createdAt || right.id.localeCompare(left.id))
 }
 
-function findNewestCompleteMessage(sortedMessages: readonly { readonly stored: StoredMessage | null }[]): StoredMessage | null {
+function findNewestCompleteMessage(
+  sortedMessages: readonly { readonly stored: StoredMessage | null }[],
+): StoredMessage | null {
   for (const message of sortedMessages) {
     const stored = message.stored
     if (stored?.agent && stored.model?.providerID && stored.model?.modelID) {
@@ -151,7 +151,7 @@ export function findFirstMessageWithAgentFromMessages(messages: readonly SDKMess
 
 export async function findNearestMessageWithFieldsFromSDK(
   client: OpencodeClient,
-  sessionID: string
+  sessionID: string,
 ): Promise<StoredMessage | null> {
   // The newest message carrying both an agent and a model wins outright, so
   // finding one in the newest window gives exactly the full-history answer.
@@ -170,7 +170,7 @@ export async function findNearestMessageWithFieldsFromSDK(
 
 export async function findFirstMessageWithAgentFromSDK(
   client: OpencodeClient,
-  sessionID: string
+  sessionID: string,
 ): Promise<string | null> {
   const messages = await fetchSDKMessages(client, sessionID)
   return messages ? findFirstMessageWithAgentFromMessages(messages) : null

@@ -52,7 +52,11 @@ function createManager(): { manager: BackgroundManager; deleteCalls: string[] } 
     experimental_workspace: { register: () => {} },
   }
 
-  const manager = new BackgroundManager({ pluginContext: ctx, config: undefined, enableParentSessionNotifications: false })
+  const manager = new BackgroundManager({
+    pluginContext: ctx,
+    config: undefined,
+    enableParentSessionNotifications: false,
+  })
   return { manager, deleteCalls }
 }
 
@@ -77,7 +81,11 @@ function installFakeTimers(): FakeTimers {
   const callbacks = new Map<ReturnType<typeof setTimeout>, () => void | Promise<void>>()
   const delays = new Map<ReturnType<typeof setTimeout>, number>()
 
-  globalThis.setTimeout = ((handler: Parameters<typeof setTimeout>[0], delay?: number, ...args: unknown[]): ReturnType<typeof setTimeout> => {
+  globalThis.setTimeout = ((
+    handler: Parameters<typeof setTimeout>[0],
+    delay?: number,
+    ...args: unknown[]
+  ): ReturnType<typeof setTimeout> => {
     if (typeof handler !== "function") {
       throw new Error("Expected function timeout handler")
     }
@@ -175,7 +183,9 @@ describe("BackgroundManager.scheduleTaskRemoval with an attached sync continuati
       scheduleTaskRemovalForTest(manager, task.id)
       const detach = manager.attachSyncContinuation("ses_child")
       const retired: string[] = []
-      manager.setSessionRuntimeRetirementHandler(async (sessionID) => { retired.push(sessionID) })
+      manager.setSessionRuntimeRetirementHandler(async (sessionID) => {
+        retired.push(sessionID)
+      })
       setSessionModel("ses_child", { providerID: "fixture", modelID: "child" })
       setSessionPromptParams("ses_child", { temperature: 0.37 })
       setSessionTools("ses_child", { bash: false })

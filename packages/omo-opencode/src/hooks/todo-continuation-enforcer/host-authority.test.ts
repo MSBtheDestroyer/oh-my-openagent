@@ -15,7 +15,7 @@ afterEach(() => {
   Reflect.set(globalThis, key, originalBridge)
   if (originalMachine === undefined) delete process.env.VIBETERM_MACHINE_ID
   else process.env.VIBETERM_MACHINE_ID = originalMachine
-  stores.splice(0).forEach(store => store.shutdown())
+  stores.splice(0).forEach((store) => store.shutdown())
   releaseAllPromptAsyncReservationsForTesting()
 })
 
@@ -27,26 +27,65 @@ function fixture() {
   const binding = { version: 1, sessionId: "scoped", machineId: "host", generation: "generation", scopeId: "scope" }
   process.env.VIBETERM_MACHINE_ID = "host"
   Reflect.set(globalThis, key, {
-    binding: () => active ? binding : null,
-    capture: (_sessionId: string, plan: unknown) => active ? { binding, plan } : null,
+    binding: () => (active ? binding : null),
+    capture: (_sessionId: string, plan: unknown) => (active ? { binding, plan } : null),
     validate: () => active,
-    stop: () => { active = false },
-    freshPlan: () => { active = true },
-  })
-  const ctx = unsafeTestValue<PluginInput>({ directory: "/unwritten-continuation-fixture", client: {
-    tui: { showToast: async () => { toasts++ } },
-    session: {
-      todo: async () => ({ data: [{ content: "new task", status: "pending", priority: "high" }] }),
-      messages: async () => ({ data: [{ info: { role: "assistant", agent: "sisyphus", finish: "stop",
-        time: { completed: 1 }, model: { providerID: "openai", modelID: "test" } }, parts: [] }] }),
-      status: async () => { statusObserved(); return { data: {} } },
-      promptAsync: async () => { prompts++; return {} },
+    stop: () => {
+      active = false
     },
-  } })
+    freshPlan: () => {
+      active = true
+    },
+  })
+  const ctx = unsafeTestValue<PluginInput>({
+    directory: "/unwritten-continuation-fixture",
+    client: {
+      tui: {
+        showToast: async () => {
+          toasts++
+        },
+      },
+      session: {
+        todo: async () => ({ data: [{ content: "new task", status: "pending", priority: "high" }] }),
+        messages: async () => ({
+          data: [
+            {
+              info: {
+                role: "assistant",
+                agent: "sisyphus",
+                finish: "stop",
+                time: { completed: 1 },
+                model: { providerID: "openai", modelID: "test" },
+              },
+              parts: [],
+            },
+          ],
+        }),
+        status: async () => {
+          statusObserved()
+          return { data: {} }
+        },
+        promptAsync: async () => {
+          prompts++
+          return {}
+        },
+      },
+    },
+  })
   const store = createSessionStateStore()
   stores.push(store)
-  return { ctx, store, prompts: () => prompts, toasts: () => toasts,
-    pause: () => { active = false }, onStatus: (action: () => void) => { statusObserved = action } }
+  return {
+    ctx,
+    store,
+    prompts: () => prompts,
+    toasts: () => toasts,
+    pause: () => {
+      active = false
+    },
+    onStatus: (action: () => void) => {
+      statusObserved = action
+    },
+  }
 }
 
 describe("host scoped todo dispatch", () => {
@@ -56,7 +95,9 @@ describe("host scoped todo dispatch", () => {
     delete process.env.VIBETERM_MACHINE_ID
     let vibeterm: Record<string, unknown> = { notes: [] }
     Reflect.set(f.ctx.client.session, "get", async () => ({ data: { metadata: { vibeterm } } }))
-    expect(await captureContinuationPermit(f.ctx, "scoped", { kind: "todos", keys: ["new task"] })).toEqual({ kind: "native" })
+    expect(await captureContinuationPermit(f.ctx, "scoped", { kind: "todos", keys: ["new task"] })).toEqual({
+      kind: "native",
+    })
     vibeterm = { continuationAuthority: { state: "historical", sessionId: "copied" } }
     expect(await captureContinuationPermit(f.ctx, "scoped", { kind: "todos", keys: ["new task"] })).toBeNull()
   })
@@ -74,39 +115,60 @@ describe("host scoped todo dispatch", () => {
     const permit = await captureContinuationPermit(f.ctx, "scoped", { kind: "todos", keys: ["new task"] })
     if (!permit) throw new Error("fixture did not authorize work")
     f.pause()
-    await injectContinuation({ ctx: f.ctx, sessionID: "scoped", sessionStateStore: f.store,
-      continuationPermit: permit, resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } } })
+    await injectContinuation({
+      ctx: f.ctx,
+      sessionID: "scoped",
+      sessionStateStore: f.store,
+      continuationPermit: permit,
+      resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } },
+    })
     expect(f.prompts()).toBe(0)
   })
 
   test("rechecks scope at actual dispatch after the prompt gate observes idle", async () => {
     const f = fixture()
     f.onStatus(f.pause)
-    await injectContinuation({ ctx: f.ctx, sessionID: "scoped", sessionStateStore: f.store,
-      resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } } })
+    await injectContinuation({
+      ctx: f.ctx,
+      sessionID: "scoped",
+      sessionStateStore: f.store,
+      resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } },
+    })
     expect(f.prompts()).toBe(0)
   })
 
   test("dispatches an unchanged local authorized plan", async () => {
     const f = fixture()
-    await injectContinuation({ ctx: f.ctx, sessionID: "scoped", sessionStateStore: f.store,
-      resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } } })
+    await injectContinuation({
+      ctx: f.ctx,
+      sessionID: "scoped",
+      sessionStateStore: f.store,
+      resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } },
+    })
     expect(f.prompts()).toBe(1)
   })
 
   test("uses the local policy bridge when a bare OpenCode process has no Vibeterm machine environment", async () => {
     const f = fixture()
     delete process.env.VIBETERM_MACHINE_ID
-    await injectContinuation({ ctx: f.ctx, sessionID: "scoped", sessionStateStore: f.store,
-      resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } } })
+    await injectContinuation({
+      ctx: f.ctx,
+      sessionID: "scoped",
+      sessionStateStore: f.store,
+      resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } },
+    })
     expect(f.prompts()).toBe(1)
   })
 
   test("rejects a bridge binding that disagrees with an explicitly selected machine", async () => {
     const f = fixture()
     process.env.VIBETERM_MACHINE_ID = "another-host"
-    await injectContinuation({ ctx: f.ctx, sessionID: "scoped", sessionStateStore: f.store,
-      resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } } })
+    await injectContinuation({
+      ctx: f.ctx,
+      sessionID: "scoped",
+      sessionStateStore: f.store,
+      resolvedInfo: { agent: "sisyphus", model: { providerID: "openai", modelID: "test" } },
+    })
     expect(f.prompts()).toBe(0)
   })
-});
+})

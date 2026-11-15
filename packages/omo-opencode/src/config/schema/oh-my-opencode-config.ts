@@ -43,9 +43,11 @@ export const OhMyOpenCodeConfigSchema = z.object({
   disabled_agents: z.array(z.string()).optional(),
   disabled_skills: z.array(z.string()).optional(),
   disabled_hooks: z.array(z.string()).optional(),
-  non_interactive_env: z.object({
-    editor_policy: z.enum(["fail_closed", "inherit"]).optional(),
-  }).optional(),
+  non_interactive_env: z
+    .object({
+      editor_policy: z.enum(["fail_closed", "inherit"]).optional(),
+    })
+    .optional(),
   disabled_commands: z.array(BuiltinCommandNameSchema).optional(),
   /** Disable specific tools by name (e.g., ["todowrite", "todoread"]) */
   disabled_tools: z.array(z.string()).optional(),
@@ -61,7 +63,10 @@ export const OhMyOpenCodeConfigSchema = z.object({
   /** Enable hashline_edit tool/hook integrations (default: false) */
   hashline_edit: z.boolean().optional(),
   /** Enable anonymous telemetry. Default: enabled when omitted. Set to false to disable. */
-  telemetry: z.boolean().optional().describe("Enable or disable anonymous telemetry. Default: enabled when omitted. Set to false to disable."),
+  telemetry: z
+    .boolean()
+    .optional()
+    .describe("Enable or disable anonymous telemetry. Default: enabled when omitted. Set to false to disable."),
   /** Enable model fallback on API errors (default: false). Set to true to enable automatic model switching when model errors occur. */
   model_fallback: z.boolean().optional(),
   agents: AgentOverridesSchema.optional(),

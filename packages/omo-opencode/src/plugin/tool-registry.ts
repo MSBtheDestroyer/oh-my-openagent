@@ -29,7 +29,15 @@ export type ToolRegistryResult = {
 export function createToolRegistry(args: {
   ctx: PluginContext
   pluginConfig: OhMyOpenCodeConfig
-  managers: Pick<Managers, "backgroundManager" | "tmuxSessionManager" | "skillMcpManager" | "modelFallbackControllerAccessor" | "monitorManager" | "bashBackgroundManager">
+  managers: Pick<
+    Managers,
+    | "backgroundManager"
+    | "tmuxSessionManager"
+    | "skillMcpManager"
+    | "modelFallbackControllerAccessor"
+    | "monitorManager"
+    | "bashBackgroundManager"
+  >
   skillContext: SkillContext
   availableCategories: AvailableCategory[]
   interactiveBashEnabled?: boolean

@@ -33,8 +33,15 @@ async function deadOwner(): Promise<TaskOwner> {
 function writeRecord(store: TaskRecoveryStore, sessionId: string, owner: TaskOwner, ageMs: number): string {
   mkdirSync(store.root, { recursive: true, mode: 0o700 })
   store.write({
-    version: 1, sessionId, taskId: `task-${sessionId}`, parentSessionId: "parent", agent: "explore",
-    cwd: tmpdir(), generation: crypto.randomUUID(), owner, tools: {},
+    version: 1,
+    sessionId,
+    taskId: `task-${sessionId}`,
+    parentSessionId: "parent",
+    agent: "explore",
+    cwd: tmpdir(),
+    generation: crypto.randomUUID(),
+    owner,
+    tools: {},
   })
   const path = store.path(sessionId)
   age(path, ageMs)
@@ -56,7 +63,10 @@ describe("task recovery sweep", () => {
     const store = new TaskRecoveryStore()
     const path = writeRecord(store, "completed-child", await liveOwner(), 0)
     const client = { session: { prompt: async () => ({}), promptAsync: async () => ({}), abort: async () => ({}) } }
-    const pluginContext: Pick<PluginInput, "client" | "directory"> = { client: client as unknown as PluginInput["client"], directory: tmpdir() }
+    const pluginContext: Pick<PluginInput, "client" | "directory"> = {
+      client: client as unknown as PluginInput["client"],
+      directory: tmpdir(),
+    }
     const manager = new BackgroundManager({ pluginContext: pluginContext as PluginInput })
 
     try {
@@ -84,11 +94,18 @@ describe("task recovery sweep", () => {
 
     // when
     const result = await sweepTaskRecoveryRecords({
-      store, minAgeMs: DAY_MS, childPresence: presence({ "orphan-child": "missing" }),
+      store,
+      minAgeMs: DAY_MS,
+      childPresence: presence({ "orphan-child": "missing" }),
     })
 
     // then
-    expect(result.removed.map((entry) => entry.reason).sort()).toEqual(["abandoned-lock", "abandoned-temp", "child-gone", "invalid-record"])
+    expect(result.removed.map((entry) => entry.reason).sort()).toEqual([
+      "abandoned-lock",
+      "abandoned-temp",
+      "child-gone",
+      "invalid-record",
+    ])
     for (const file of [orphan, lock, temp, corrupt]) expect(existsSync(file)).toBe(false)
   })
 
@@ -109,7 +126,8 @@ describe("task recovery sweep", () => {
 
     // when
     const result = await sweepTaskRecoveryRecords({
-      store, minAgeMs: DAY_MS,
+      store,
+      minAgeMs: DAY_MS,
       childPresence: presence({ "live-owner": "missing", "existing-child": "exists", "young-child": "missing" }),
     })
 
@@ -124,10 +142,13 @@ describe("task recovery sweep", () => {
     const sessions = ["a", "b", "c", "d", "e", "f"].map((name) => `child-${name}`)
     const missing = new Set(sessions.filter((_, index) => index % 2 === 0))
     for (const sessionId of sessions) writeRecord(store, sessionId, await deadOwner(), 2 * DAY_MS)
-    const run = () => sweepTaskRecoveryRecords({
-      store, minAgeMs: DAY_MS, budget: 2,
-      childPresence: async (sessionId) => missing.has(sessionId) ? "missing" : "exists",
-    })
+    const run = () =>
+      sweepTaskRecoveryRecords({
+        store,
+        minAgeMs: DAY_MS,
+        budget: 2,
+        childPresence: async (sessionId) => (missing.has(sessionId) ? "missing" : "exists"),
+      })
 
     // when
     const runs = [await run(), await run(), await run()]

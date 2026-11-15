@@ -9,8 +9,18 @@ describe("SyncResumeStore storage boundary", () => {
   let dataHome: string
   let originalDataHome: string | undefined
   const record: SyncResumeRecord = {
-    version: 1, sessionId: "ses_store_resume", agent: "oracle",
-    model: { providerID: "fixture", modelID: "model", variant: "high", temperature: 0.17, top_p: 0.53, maxTokens: 321, reasoningEffort: "high" },
+    version: 1,
+    sessionId: "ses_store_resume",
+    agent: "oracle",
+    model: {
+      providerID: "fixture",
+      modelID: "model",
+      variant: "high",
+      temperature: 0.17,
+      top_p: 0.53,
+      maxTokens: 321,
+      reasoningEffort: "high",
+    },
     tools: { bash: false, task: false, question: false },
   }
 
@@ -45,7 +55,12 @@ describe("SyncResumeStore storage boundary", () => {
     //#given
     const store = new SyncResumeStore()
     store.write(record)
-    const path = join(getDataDir(), "omo", "sync-resume", `${createHash("sha256").update(record.sessionId).digest("hex")}.json`)
+    const path = join(
+      getDataDir(),
+      "omo",
+      "sync-resume",
+      `${createHash("sha256").update(record.sessionId).digest("hex")}.json`,
+    )
     writeFileSync(path, JSON.stringify({ ...record, sessionId: "another_session" }))
 
     //#when / #then
@@ -98,15 +113,31 @@ describe("SyncResumeStore storage boundary", () => {
 
     //#when
     const child = Bun.spawn([process.execPath, "--eval", source], {
-      env: { ...process.env, XDG_DATA_HOME: dataHome }, stdout: "pipe", stderr: "pipe", timeout: 10_000,
+      env: { ...process.env, XDG_DATA_HOME: dataHome },
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 10_000,
     })
-    const [output, error, exit] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
+    const [output, error, exit] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ])
 
     //#then
     expect({ error, exit }).toEqual({ error: "", exit: 0 })
     expect(JSON.parse(output)).toMatchObject({
-      body: { agent: "oracle", model: { providerID: "fixture", modelID: "model" }, variant: "high", temperature: 0.17, topP: 0.53, maxOutputTokens: 321, tools: { bash: false, write: false, call_omo_agent: false } },
-      agent: "oracle", model: { providerID: "fixture", modelID: "model" },
+      body: {
+        agent: "oracle",
+        model: { providerID: "fixture", modelID: "model" },
+        variant: "high",
+        temperature: 0.17,
+        topP: 0.53,
+        maxOutputTokens: 321,
+        tools: { bash: false, write: false, call_omo_agent: false },
+      },
+      agent: "oracle",
+      model: { providerID: "fixture", modelID: "model" },
       params: { temperature: 0.17, topP: 0.53, maxOutputTokens: 321, options: { reasoningEffort: "high" } },
       tools: { bash: false, write: false, call_omo_agent: false },
     })

@@ -1,45 +1,45 @@
-import type { PluginInput } from "@opencode-ai/plugin";
+import type { PluginInput } from "@opencode-ai/plugin"
 
-import { createDynamicTruncator } from "../../shared/dynamic-truncator";
-import { resolveSessionEventID } from "../../shared/event-session-id";
-import { processFilePathForReadmeInjection } from "./injector";
-import { clearInjectedPaths } from "./storage";
+import { createDynamicTruncator } from "../../shared/dynamic-truncator"
+import { resolveSessionEventID } from "../../shared/event-session-id"
+import { processFilePathForReadmeInjection } from "./injector"
+import { clearInjectedPaths } from "./storage"
 
 interface ToolExecuteInput {
-  tool: string;
-  sessionID: string;
-  callID: string;
+  tool: string
+  sessionID: string
+  callID: string
 }
 
 interface ToolExecuteOutput {
-  title: string;
-  output: string;
-  metadata: unknown;
+  title: string
+  output: string
+  metadata: unknown
 }
 
 interface DirectoryReadmeInjectorHook {
-  releaseSession: (sessionID: string) => void;
-  "tool.execute.before"?: (input: ToolExecuteInput, output: { args: unknown }) => Promise<void>;
-  "tool.execute.after": (input: ToolExecuteInput, output: ToolExecuteOutput) => Promise<void>;
-  event: (input: EventInput) => Promise<void>;
+  releaseSession: (sessionID: string) => void
+  "tool.execute.before"?: (input: ToolExecuteInput, output: { args: unknown }) => Promise<void>
+  "tool.execute.after": (input: ToolExecuteInput, output: ToolExecuteOutput) => Promise<void>
+  event: (input: EventInput) => Promise<void>
 }
 
 interface EventInput {
   event: {
-    type: string;
-    properties?: unknown;
-  };
+    type: string
+    properties?: unknown
+  }
 }
 
 export function createDirectoryReadmeInjectorHook(
   ctx: PluginInput,
   modelCacheState?: { anthropicContext1MEnabled: boolean },
 ): DirectoryReadmeInjectorHook {
-  const sessionCaches = new Map<string, Set<string>>();
-  const truncator = createDynamicTruncator(ctx, modelCacheState);
+  const sessionCaches = new Map<string, Set<string>>()
+  const truncator = createDynamicTruncator(ctx, modelCacheState)
 
   const toolExecuteAfter = async (input: ToolExecuteInput, output: ToolExecuteOutput) => {
-    const toolName = input.tool.toLowerCase();
+    const toolName = input.tool.toLowerCase()
 
     if (toolName === "read") {
       await processFilePathForReadmeInjection({
@@ -49,36 +49,36 @@ export function createDirectoryReadmeInjectorHook(
         filePath: output.title,
         sessionID: input.sessionID,
         output,
-      });
-      return;
+      })
+      return
     }
-  };
+  }
 
   const eventHandler = async ({ event }: EventInput) => {
-    const props = event.properties as Record<string, unknown> | undefined;
+    const props = event.properties as Record<string, unknown> | undefined
 
     if (event.type === "session.deleted") {
-      const sessionID = resolveSessionEventID(props);
+      const sessionID = resolveSessionEventID(props)
       if (sessionID) {
-        sessionCaches.delete(sessionID);
-        clearInjectedPaths(sessionID);
+        sessionCaches.delete(sessionID)
+        clearInjectedPaths(sessionID)
       }
     }
 
     if (event.type === "session.compacted") {
-      const sessionID = resolveSessionEventID(props);
+      const sessionID = resolveSessionEventID(props)
       if (sessionID) {
-        sessionCaches.delete(sessionID);
-        clearInjectedPaths(sessionID);
+        sessionCaches.delete(sessionID)
+        clearInjectedPaths(sessionID)
       }
     }
-  };
+  }
 
   return {
     releaseSession: (sessionID: string): void => {
-      sessionCaches.delete(sessionID);
+      sessionCaches.delete(sessionID)
     },
     "tool.execute.after": toolExecuteAfter,
     event: eventHandler,
-  };
+  }
 }

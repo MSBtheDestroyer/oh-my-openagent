@@ -97,15 +97,16 @@ export async function runSyncTaskLoop(input: SyncTaskRunnerInput): Promise<strin
   const deliverableTag = getDeliverableTag(agentToUse)
   let effectiveCategoryModel = input.categoryModel
   let anchorMessageCount = input.anchorMessageCount
-  let fallbackState: ModelFallbackState | undefined = effectiveCategoryModel && fallbackChain?.length
-    ? {
-        providerID: effectiveCategoryModel.providerID,
-        modelID: effectiveCategoryModel.modelID,
-        fallbackChain,
-        attemptCount: 0,
-        pending: true,
-      }
-    : undefined
+  let fallbackState: ModelFallbackState | undefined =
+    effectiveCategoryModel && fallbackChain?.length
+      ? {
+          providerID: effectiveCategoryModel.providerID,
+          modelID: effectiveCategoryModel.modelID,
+          fallbackChain,
+          attemptCount: 0,
+          pending: true,
+        }
+      : undefined
   let activeSessionID = input.sessionID
 
   while (true) {
@@ -153,17 +154,24 @@ export async function runSyncTaskLoop(input: SyncTaskRunnerInput): Promise<strin
     const handoffTimer = startForegroundHandoffTimer(
       typeof executorCtx.manager?.adoptForegroundSession === "function" ? executorCtx.foregroundHandoffMs : undefined,
     )
-    const pollError = await deps.pollSyncSession(ctx, client, {
-      sessionID: activeSessionID,
-      agentToUse,
-      toastManager,
-      taskId,
-      maxAssistantTurns: executorCtx.syncMaxAssistantTurns,
-      hasActiveChildBackgroundTasks,
-      hasPendingParentWake,
-      ...(anchorMessageCount !== undefined ? { anchorMessageCount } : {}),
-      ...(handoffTimer.signal ? { handoffSignal: handoffTimer.signal } : {}),
-    }, syncPollTimeoutMs).finally(handoffTimer.cancel)
+    const pollError = await deps
+      .pollSyncSession(
+        ctx,
+        client,
+        {
+          sessionID: activeSessionID,
+          agentToUse,
+          toastManager,
+          taskId,
+          maxAssistantTurns: executorCtx.syncMaxAssistantTurns,
+          hasActiveChildBackgroundTasks,
+          hasPendingParentWake,
+          ...(anchorMessageCount !== undefined ? { anchorMessageCount } : {}),
+          ...(handoffTimer.signal ? { handoffSignal: handoffTimer.signal } : {}),
+        },
+        syncPollTimeoutMs,
+      )
+      .finally(handoffTimer.cancel)
     if (pollError === SYNC_POLL_HANDED_OFF) {
       input.onHandedOff?.()
       return handOffSyncTask({

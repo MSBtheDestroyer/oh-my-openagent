@@ -26,9 +26,15 @@ export function finalAssistantText(messages: readonly ResultMessage[]): string |
   return undefined
 }
 
-export function capNotificationResult(text: string, maxChars = TASK_NOTIFICATION_RESULT_MAX_CHARS): BackgroundTaskNotificationResult {
+export function capNotificationResult(
+  text: string,
+  maxChars = TASK_NOTIFICATION_RESULT_MAX_CHARS,
+): BackgroundTaskNotificationResult {
   if (text.length <= maxChars) return { text, truncated: false }
-  return { text: `${text.slice(0, maxChars).trimEnd()}\n[... ${text.length - maxChars} more characters]`, truncated: true }
+  return {
+    text: `${text.slice(0, maxChars).trimEnd()}\n[... ${text.length - maxChars} more characters]`,
+    truncated: true,
+  }
 }
 
 /**
@@ -42,17 +48,27 @@ export async function readTaskNotificationResult(
   ownMessagesSince?: number,
 ): Promise<BackgroundTaskNotificationResult | undefined> {
   try {
-    const response = await messagesInDirectory(client, {
-      path: { id: sessionID },
-      query: { limit: RESULT_MESSAGE_WINDOW },
-    }, directory)
+    const response = await messagesInDirectory(
+      client,
+      {
+        path: { id: sessionID },
+        query: { limit: RESULT_MESSAGE_WINDOW },
+      },
+      directory,
+    )
     const messages = normalizeSDKResponse(response, [] as ResultMessage[], { preferResponseOnMissingData: true })
     const all = Array.isArray(messages) ? messages : []
-    const own = ownMessagesSince === undefined ? all : all.filter((message) => (message.info?.time?.created ?? 0) >= ownMessagesSince)
+    const own =
+      ownMessagesSince === undefined
+        ? all
+        : all.filter((message) => (message.info?.time?.created ?? 0) >= ownMessagesSince)
     const text = finalAssistantText(own)
     return text === undefined ? undefined : capNotificationResult(text)
   } catch (error) {
-    log("[background-agent] Could not read the child's final answer for its notification:", { sessionID, error: String(error) })
+    log("[background-agent] Could not read the child's final answer for its notification:", {
+      sessionID,
+      error: String(error),
+    })
     return undefined
   }
 }

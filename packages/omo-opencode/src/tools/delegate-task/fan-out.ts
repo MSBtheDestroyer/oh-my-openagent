@@ -57,12 +57,22 @@ export async function executeFanOut(
       ...(groupId ? { groupId } : {}),
     }
     first += slice.length
-    return executeBackgroundTask(childArgs, ctx, executorCtx, parentContext, agentToUse, categoryModel, systemContent, fallbackChain)
+    return executeBackgroundTask(
+      childArgs,
+      ctx,
+      executorCtx,
+      parentContext,
+      agentToUse,
+      categoryModel,
+      systemContent,
+      fallbackChain,
+    )
   })
   const outputs = await Promise.all(launches)
 
-  const children = manager.getTasksByParentSession(parentContext.sessionID)
-    .filter((task) => groupId ? task.groupId === groupId : outputs.some((output) => output.includes(task.id)))
+  const children = manager
+    .getTasksByParentSession(parentContext.sessionID)
+    .filter((task) => (groupId ? task.groupId === groupId : outputs.some((output) => output.includes(task.id))))
   if (groupId) manager.settleTaskGroupSize(groupId, children.length)
 
   const reporting = groupId
@@ -80,8 +90,10 @@ ${reporting} Do not poll. Stop one with \`background_cancel(taskId="<id>")\`.${c
 /* The task-resume-info hook would append one child's session only; listing each child here makes it skip the call. */
 function continueBlock(children: ReadonlyArray<{ id: string; sessionId?: string }>): string {
   if (children.length === 0) return ""
-  const lines = children.map((task) => task.sessionId
-    ? `- \`${task.id}\`: task(task_id="${task.sessionId}", load_skills=[], run_in_background=true, prompt="...")`
-    : `- \`${task.id}\`: not started yet; its session id comes with its notice`)
+  const lines = children.map((task) =>
+    task.sessionId
+      ? `- \`${task.id}\`: task(task_id="${task.sessionId}", load_skills=[], run_in_background=true, prompt="...")`
+      : `- \`${task.id}\`: not started yet; its session id comes with its notice`,
+  )
   return `\n\nto continue: each child keeps its own session\n${lines.join("\n")}`
 }

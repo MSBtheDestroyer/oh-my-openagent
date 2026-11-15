@@ -70,7 +70,8 @@ export class BashBackgroundManager {
   private live(): BashBackgroundRecord[] {
     const now = (this.deps.now ?? Date.now)()
     for (const record of this.running.values()) {
-      if (record.timeoutMs === null || now - record.startedAt <= record.timeoutMs + BASH_BACKGROUND_EXPIRY_MARGIN_MS) continue
+      if (record.timeoutMs === null || now - record.startedAt <= record.timeoutMs + BASH_BACKGROUND_EXPIRY_MARGIN_MS)
+        continue
       log("[bash-background] Dropping a command past its timeout whose exit never arrived:", { id: record.id })
       this.running.delete(record.id)
     }

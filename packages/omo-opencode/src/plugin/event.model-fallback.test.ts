@@ -73,7 +73,7 @@ describe("createEventHandler - model fallback", () => {
           session: sessionClient,
         },
       }),
-      pluginConfig: unsafeTestValue((args?.pluginConfig ?? {})),
+      pluginConfig: unsafeTestValue(args?.pluginConfig ?? {}),
       firstMessageVariantGate: {
         markSessionCreated: () => {},
         clear: () => {},
@@ -148,8 +148,7 @@ describe("createEventHandler - model fallback", () => {
             error: {
               name: "APIError",
               data: {
-                message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
                 isRetryable: true,
               },
             },
@@ -243,8 +242,7 @@ describe("createEventHandler - model fallback", () => {
             error: {
               name: "APIError",
               data: {
-                message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
                 isRetryable: true,
               },
             },
@@ -288,8 +286,7 @@ describe("createEventHandler - model fallback", () => {
             name: "UnknownError",
             data: {
               error: {
-                message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
               },
             },
           },
@@ -336,8 +333,7 @@ describe("createEventHandler - model fallback", () => {
     const assistantError = {
       name: "APIError",
       data: {
-        message:
-          "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+        message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
         isRetryable: true,
       },
     }
@@ -401,8 +397,7 @@ describe("createEventHandler - model fallback", () => {
     const assistantError = {
       name: "APIError",
       data: {
-        message:
-          "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+        message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
         isRetryable: true,
       },
     }
@@ -463,8 +458,7 @@ describe("createEventHandler - model fallback", () => {
     const assistantError = {
       name: "APIError",
       data: {
-        message:
-          "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+        message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
         isRetryable: true,
       },
     }
@@ -513,8 +507,7 @@ describe("createEventHandler - model fallback", () => {
     const assistantError = {
       name: "APIError",
       data: {
-        message:
-          "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+        message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
         isRetryable: true,
       },
     }
@@ -616,8 +609,7 @@ describe("createEventHandler - model fallback", () => {
           status: {
             type: "retry",
             attempt: 1,
-            message:
-              "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+            message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
             next: 1234,
           },
         },
@@ -850,8 +842,7 @@ describe("createEventHandler - model fallback", () => {
           ...retryStatus.properties,
           status: {
             ...retryStatus.properties.status,
-            message:
-              "All credentials for model claude-opus-5-5 are cooling down [retrying in ~5 days attempt #1]",
+            message: "All credentials for model claude-opus-5-5 are cooling down [retrying in ~5 days attempt #1]",
           },
         },
       },
@@ -904,8 +895,7 @@ describe("createEventHandler - model fallback", () => {
             error: {
               name: "APIError",
               data: {
-                message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
                 isRetryable: true,
               },
             },
@@ -937,8 +927,7 @@ describe("createEventHandler - model fallback", () => {
             name: "UnknownError",
             data: {
               error: {
-                message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
               },
             },
           },
@@ -1003,8 +992,7 @@ describe("createEventHandler - model fallback", () => {
           status: {
             type: "retry",
             attempt: 1,
-            message:
-              "All credentials for model claude-opus-4-8 are cooling down [retrying in 7m 56s attempt #1]",
+            message: "All credentials for model claude-opus-4-8 are cooling down [retrying in 7m 56s attempt #1]",
             next: 476,
           },
         },
@@ -1187,25 +1175,26 @@ describe("createEventHandler - model fallback", () => {
     })
 
     const triggerRetryCycle = async (providerID: string, modelID: string) => {
-      await eventHandler(asEventHandlerInput({
-        event: {
-          type: "session.error",
-          properties: {
-            sessionID,
-            providerID,
-            modelID,
-            error: {
-              name: "UnknownError",
-              data: {
-                error: {
-                  message:
-                    `Bad Gateway: {"error":{"message":"unknown provider for model ${modelID}"}}`,
+      await eventHandler(
+        asEventHandlerInput({
+          event: {
+            type: "session.error",
+            properties: {
+              sessionID,
+              providerID,
+              modelID,
+              error: {
+                name: "UnknownError",
+                data: {
+                  error: {
+                    message: `Bad Gateway: {"error":{"message":"unknown provider for model ${modelID}"}}`,
+                  },
                 },
               },
             },
           },
-        },
-      }))
+        }),
+      )
 
       const output: ChatMessageOutput = { message: {}, parts: [] }
       await chatMessageHandler(
@@ -1317,8 +1306,7 @@ describe("createEventHandler - model fallback", () => {
             error: {
               name: "APIError",
               data: {
-                message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
                 isRetryable: true,
               },
             },
@@ -1344,8 +1332,7 @@ describe("createEventHandler - model fallback", () => {
             name: "UnknownError",
             data: {
               error: {
-                message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                message: 'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
               },
             },
           },

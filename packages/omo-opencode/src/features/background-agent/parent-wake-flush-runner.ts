@@ -1,5 +1,8 @@
 import { log } from "../../shared"
-import { isSessionActive as isOpenCodeSessionActive, settleAfterSessionIdle } from "../../hooks/shared/session-idle-settle"
+import {
+  isSessionActive as isOpenCodeSessionActive,
+  settleAfterSessionIdle,
+} from "../../hooks/shared/session-idle-settle"
 import { isFailureParentWake, isRedundantParentWake, type PendingParentWake } from "./parent-wake-dedupe"
 import type { ParentWakeDispatchedTracker } from "./parent-wake-dispatched-tracker"
 import type { ParentWakePendingQueue } from "./parent-wake-pending-queue"
@@ -51,9 +54,10 @@ export class ParentWakeFlushRunner {
     const emptyAssistantTurnRetry = latestWake.allowEmptyAssistantTurnRetry === true
     // A kept reply's notice already sits in the running turn, which reads it at its next step; the reply is owed only
     // if that turn ends without reading it, so it waits for idle instead of being forced into the busy turn.
-    const forceDispatchAfterActiveDefer = sessionActive
-      && latestWake.noReplyAdmittedAt === undefined
-      && this.shouldForceDispatchAfterActiveDefer(latestWake)
+    const forceDispatchAfterActiveDefer =
+      sessionActive &&
+      latestWake.noReplyAdmittedAt === undefined &&
+      this.shouldForceDispatchAfterActiveDefer(latestWake)
     if (sessionActive && !forceDispatchAfterActiveDefer) {
       this.schedulePendingParentWakeFlush(sessionID)
       log("[background-agent] Deferred parent wake because parent session is active:", {
@@ -117,11 +121,7 @@ export class ParentWakeFlushRunner {
       return
     }
 
-    const finalToolWaitDecision = await this.confirmParentWakeStillSafeForReply(
-      sessionID,
-      latestWake,
-      toolWaitDecision,
-    )
+    const finalToolWaitDecision = await this.confirmParentWakeStillSafeForReply(sessionID, latestWake, toolWaitDecision)
     if (finalToolWaitDecision.defer) {
       if (this.deferReplyWakeWhileUnsafe(sessionID, latestWake)) {
         return
@@ -159,13 +159,17 @@ export class ParentWakeFlushRunner {
   }
 
   schedulePendingParentWakeFlush(sessionID: string, delayMs?: number): void {
-    this.deps.pendingQueue.scheduleFlush(sessionID, async () => {
-      try {
-        await this.flushPendingParentWake(sessionID)
-      } finally {
-        this.deps.notifierDeps.onScheduledFlushSettled?.(sessionID)
-      }
-    }, delayMs)
+    this.deps.pendingQueue.scheduleFlush(
+      sessionID,
+      async () => {
+        try {
+          await this.flushPendingParentWake(sessionID)
+        } finally {
+          this.deps.notifierDeps.onScheduledFlushSettled?.(sessionID)
+        }
+      },
+      delayMs,
+    )
   }
 
   // Reply-required wakes must never be consumed by an admit-only noReply
@@ -180,7 +184,9 @@ export class ParentWakeFlushRunner {
     }
     if (latestWake.shouldReply && latestWake.noReplyAdmittedAt !== undefined) {
       this.schedulePendingParentWakeFlush(sessionID)
-      log("[background-agent] Deferred retained reply-required parent wake until parent session is safe:", { sessionID })
+      log("[background-agent] Deferred retained reply-required parent wake until parent session is safe:", {
+        sessionID,
+      })
       return true
     }
     return false
@@ -245,7 +251,8 @@ export class ParentWakeFlushRunner {
         getDispatchedWake: () => this.deps.dispatchedTracker.getWake(sessionID),
         hasRecordedPromptAfterDispatch: (wake) =>
           this.deps.sessionInspector.hasRecordedPromptMessageAfterDispatchedWake(sessionID, wake),
-        trackDispatchedWake: (wake, dispatchedAt) => this.deps.dispatchedTracker.trackWake(sessionID, wake, dispatchedAt),
+        trackDispatchedWake: (wake, dispatchedAt) =>
+          this.deps.dispatchedTracker.trackWake(sessionID, wake, dispatchedAt),
         requeueWake: (wake) => this.requeueWake(sessionID, wake),
         scheduleFlush: (delayMs) => this.schedulePendingParentWakeFlush(sessionID, delayMs),
       })

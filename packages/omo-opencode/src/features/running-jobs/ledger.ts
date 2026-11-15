@@ -224,7 +224,9 @@ function processCommandLine(): string[] | undefined {
     if (!(error instanceof Error)) throw error
   }
   try {
-    return execFileSync("ps", ["-o", "args=", "-p", String(process.pid)], { encoding: "utf8" }).trim().split(/\s+/)
+    return execFileSync("ps", ["-o", "args=", "-p", String(process.pid)], { encoding: "utf8" })
+      .trim()
+      .split(/\s+/)
   } catch (error) {
     log("[running-jobs] Could not read this process's command line:", { error: String(error) })
     return undefined

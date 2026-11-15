@@ -5,10 +5,14 @@ import { z } from "zod"
 import { readProcessStart } from "./owner-process-identity"
 import type { OwnerProcess, TaskOwner } from "./task-recovery-store"
 
-const OwnerReplySchema = z.object({
-  owner: z.string().uuid(), sessionId: z.string(), generation: z.string().uuid(),
-  state: z.enum(["owned", "unknown"]),
-}).strict()
+const OwnerReplySchema = z
+  .object({
+    owner: z.string().uuid(),
+    sessionId: z.string(),
+    generation: z.string().uuid(),
+    state: z.enum(["owned", "unknown"]),
+  })
+  .strict()
 
 export class TaskWorkerOwnership {
   private server?: Server
@@ -64,7 +68,10 @@ export class TaskWorkerOwnership {
 }
 
 type OwnerProbeRecord = {
-  readonly owner: TaskOwner; readonly ownerProcess?: OwnerProcess; readonly sessionId: string; readonly generation: string
+  readonly owner: TaskOwner
+  readonly ownerProcess?: OwnerProcess
+  readonly sessionId: string
+  readonly generation: string
 }
 
 /**
@@ -78,7 +85,8 @@ export async function probeTaskOwner(record: OwnerProbeRecord): Promise<"dead" |
   if (record.owner.hostname !== hostname()) return "unknown"
   if (record.ownerProcess) {
     const liveness = await readProcessStart(record.ownerProcess.pid)
-    if (liveness === "gone" || (typeof liveness === "object" && liveness.start !== record.ownerProcess.start)) return "dead"
+    if (liveness === "gone" || (typeof liveness === "object" && liveness.start !== record.ownerProcess.start))
+      return "dead"
   }
   return requestOwnerState(record)
 }
@@ -94,15 +102,24 @@ function requestOwnerState(record: OwnerProbeRecord): Promise<"dead" | "owned" |
       response.setEncoding("utf8")
       response.on("data", (chunk: string) => {
         body += chunk
-        if (body.length > 4096) { request.destroy(); resolve("unknown") }
+        if (body.length > 4096) {
+          request.destroy()
+          resolve("unknown")
+        }
       })
       response.on("error", () => resolve("unknown"))
       response.on("end", () => {
         try {
           const reply = OwnerReplySchema.safeParse(JSON.parse(body))
-          resolve(response.statusCode === 200 && reply.success
-            && reply.data.owner === record.owner.id && reply.data.sessionId === record.sessionId
-            && reply.data.generation === record.generation ? reply.data.state : "unknown")
+          resolve(
+            response.statusCode === 200 &&
+              reply.success &&
+              reply.data.owner === record.owner.id &&
+              reply.data.sessionId === record.sessionId &&
+              reply.data.generation === record.generation
+              ? reply.data.state
+              : "unknown",
+          )
         } catch (error) {
           if (!(error instanceof Error)) throw error
           resolve("unknown")

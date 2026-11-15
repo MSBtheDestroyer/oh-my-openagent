@@ -15,9 +15,7 @@ type ParentWakeWindowRecoveryInput = {
   readonly scheduleFlush: () => void
 }
 
-export async function handleDispatchedParentWakeWindowElapsed(
-  input: ParentWakeWindowRecoveryInput,
-): Promise<void> {
+export async function handleDispatchedParentWakeWindowElapsed(input: ParentWakeWindowRecoveryInput): Promise<void> {
   const currentWake = input.dispatchedTracker.getWake(input.sessionID)
   if (!currentWake || currentWake.dispatchedAt !== input.wake.dispatchedAt) {
     return
@@ -32,8 +30,10 @@ export async function handleDispatchedParentWakeWindowElapsed(
   }
 
   // A noReply notice never produces output; once it is recorded in the parent it has been delivered.
-  if (!input.wake.shouldReply
-    && await input.sessionInspector.hasRecordedPromptMessageAfterDispatchedWake(input.sessionID, input.wake)) {
+  if (
+    !input.wake.shouldReply &&
+    (await input.sessionInspector.hasRecordedPromptMessageAfterDispatchedWake(input.sessionID, input.wake))
+  ) {
     input.dispatchedTracker.clearWake(input.sessionID)
     log("[background-agent] Cleared dispatched noReply parent wake once its notice was recorded:", {
       sessionID: input.sessionID,

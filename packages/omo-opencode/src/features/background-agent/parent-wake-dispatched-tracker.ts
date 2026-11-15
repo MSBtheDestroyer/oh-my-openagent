@@ -82,7 +82,6 @@ export class ParentWakeDispatchedTracker {
     return this.dispatchedParentWakes.get(sessionID)
   }
 
-
   clearWake(sessionID: string): void {
     const timer = this.dispatchedParentWakeTimers.get(sessionID)
     if (timer) {

@@ -7,7 +7,11 @@ import type { MonitorRecord, OutputBatch } from "./types"
 
 function controlledStream() {
   let controller: ReadableStreamDefaultController<Uint8Array> | undefined
-  const stream = new ReadableStream<Uint8Array>({ start(next) { controller = next } })
+  const stream = new ReadableStream<Uint8Array>({
+    start(next) {
+      controller = next
+    },
+  })
   return { stream, write: (text: string) => controller?.enqueue(new TextEncoder().encode(text)) }
 }
 
@@ -22,14 +26,33 @@ describe("createMonitorState rate limit", () => {
     const stdout = controlledStream()
     const queued: OutputBatch[] = []
     const record: MonitorRecord = {
-      id: "mon_fast", command: "spam", label: "spam", mode: "idle", parentSessionId: "ses_p",
-      startedAt: new Date(0), status: "running", eventsDelivered: 0,
-      counters: { totalLines: 0, matchedLines: 0, unmatchedLines: 0, droppedMatched: 0, droppedUnmatched: 0, bytesDropped: 0, lastSequence: 0 },
+      id: "mon_fast",
+      command: "spam",
+      label: "spam",
+      mode: "idle",
+      parentSessionId: "ses_p",
+      startedAt: new Date(0),
+      status: "running",
+      eventsDelivered: 0,
+      counters: {
+        totalLines: 0,
+        matchedLines: 0,
+        unmatchedLines: 0,
+        droppedMatched: 0,
+        droppedUnmatched: 0,
+        bytesDropped: 0,
+        lastSequence: 0,
+      },
     }
     const scheduler = { setTimer: () => 0, clearTimer: () => {}, now: () => now }
     createMonitorState({
       record,
-      monitoredProcess: { kill() {}, exited: new Promise(() => {}), stdout: stdout.stream, stderr: new ReadableStream() },
+      monitoredProcess: {
+        kill() {},
+        exited: new Promise(() => {}),
+        stdout: stdout.stream,
+        stderr: new ReadableStream(),
+      },
       filter: { matches: () => true },
       ring: new MonitorRingBuffer({ ringMaxLines: 100 }),
       batcher: new MonitorBatcher({ batchMaxLines: 1, batchMaxBytes: 1_000, flushIntervalMs: 0, scheduler }),

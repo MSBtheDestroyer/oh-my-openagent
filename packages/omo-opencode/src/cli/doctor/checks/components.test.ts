@@ -24,14 +24,31 @@ function tool(overrides: Partial<ToolComponentReport> & Pick<ToolComponentReport
   return { status: "ok", path: null, version: null, detail: "", remediation: [], ...overrides }
 }
 
-function report(languages: LspLanguageReport[], tools: ToolComponentReport[] = [], requiredLanguages: string[] = []): ComponentsReport {
-  return { cwd: "/project", probed: true, requiredLanguages, lsp: { cwd: "/project", scannedEntries: 10, languages }, tools }
+function report(
+  languages: LspLanguageReport[],
+  tools: ToolComponentReport[] = [],
+  requiredLanguages: string[] = [],
+): ComponentsReport {
+  return {
+    cwd: "/project",
+    probed: true,
+    requiredLanguages,
+    lsp: { cwd: "/project", scannedEntries: 10, languages },
+    tools,
+  }
 }
 
 describe("buildComponentIssues", () => {
   it("#given a required language that is missing #when building issues #then it is an error with remediation", () => {
     // given
-    const missing = language({ language: "shellscript", extension: ".sh", required: true, status: "missing", serverId: "bash", remediation: ["npm install -g bash-language-server"] })
+    const missing = language({
+      language: "shellscript",
+      extension: ".sh",
+      required: true,
+      status: "missing",
+      serverId: "bash",
+      remediation: ["npm install -g bash-language-server"],
+    })
 
     // when
     const issues = buildComponentIssues(report([missing]))
@@ -52,7 +69,9 @@ describe("buildComponentIssues", () => {
 
   it("#given an optional language nothing handles #when building issues #then it is not reported", () => {
     // when
-    const issues = buildComponentIssues(report([language({ language: "markdown", extension: ".md", status: "unconfigured", serverId: null })]))
+    const issues = buildComponentIssues(
+      report([language({ language: "markdown", extension: ".md", status: "unconfigured", serverId: null })]),
+    )
 
     // then
     expect(issues).toEqual([])
@@ -60,7 +79,10 @@ describe("buildComponentIssues", () => {
 
   it("#given a failed tool and a skipped one #when building issues #then only the failed tool is a warning", () => {
     // given
-    const tools = [tool({ id: "ast-grep", status: "failed", detail: "sg did not match" }), tool({ id: "comment-checker", status: "skipped" })]
+    const tools = [
+      tool({ id: "ast-grep", status: "failed", detail: "sg did not match" }),
+      tool({ id: "comment-checker", status: "skipped" }),
+    ]
 
     // when
     const issues = buildComponentIssues(report([], tools))
@@ -71,7 +93,13 @@ describe("buildComponentIssues", () => {
 
   it("#given the LSP tools disabled and required languages #when building issues #then it is an error", () => {
     // given
-    const disabled: ComponentsReport = { cwd: "/p", probed: true, requiredLanguages: ["typescript"], lsp: null, tools: [] }
+    const disabled: ComponentsReport = {
+      cwd: "/p",
+      probed: true,
+      requiredLanguages: ["typescript"],
+      lsp: null,
+      tools: [],
+    }
 
     // when
     const issues = buildComponentIssues(disabled)
@@ -85,7 +113,9 @@ describe("buildComponentIssues", () => {
 describe("summarizeComponents", () => {
   it("#given languages and tools #when summarizing #then each gets one line naming its server and status", () => {
     // when
-    const lines = summarizeComponents(report([language({ required: true })], [tool({ id: "lsp-bridge", status: "present" })]))
+    const lines = summarizeComponents(
+      report([language({ required: true })], [tool({ id: "lsp-bridge", status: "present" })]),
+    )
 
     // then
     expect(lines).toEqual(["LSP typescript (required): ok via typescript", "lsp-bridge: present"])

@@ -7,18 +7,18 @@ import type { ModelCapabilitiesSnapshot } from "./types"
 const mergedSnapshots = new WeakMap<ModelCapabilitiesSnapshot, ModelCapabilitiesSnapshot>()
 
 export function getBundledModelCapabilitiesSnapshot(
-	snapshotJson: ModelCapabilitiesSnapshot,
+  snapshotJson: ModelCapabilitiesSnapshot,
 ): ModelCapabilitiesSnapshot {
-	const cached = mergedSnapshots.get(snapshotJson)
-	if (cached !== undefined) return cached
+  const cached = mergedSnapshots.get(snapshotJson)
+  if (cached !== undefined) return cached
 
-	const merged: ModelCapabilitiesSnapshot = {
-		...snapshotJson,
-		models: {
-			...snapshotJson.models,
-			...SUPPLEMENTAL_MODEL_CAPABILITIES,
-		},
-	}
-	mergedSnapshots.set(snapshotJson, merged)
-	return merged
+  const merged: ModelCapabilitiesSnapshot = {
+    ...snapshotJson,
+    models: {
+      ...snapshotJson.models,
+      ...SUPPLEMENTAL_MODEL_CAPABILITIES,
+    },
+  }
+  mergedSnapshots.set(snapshotJson, merged)
+  return merged
 }

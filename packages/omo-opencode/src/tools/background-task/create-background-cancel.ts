@@ -45,8 +45,16 @@ export function createBackgroundCancel(
   return tool({
     description: BACKGROUND_CANCEL_DESCRIPTION,
     args: {
-      taskId: tool.schema.string().optional().describe("Task, monitor or background bash command ID to stop (required if all=false)"),
-      all: tool.schema.boolean().optional().describe("Stop all running background tasks, monitors and background bash commands of this session (default: false)"),
+      taskId: tool.schema
+        .string()
+        .optional()
+        .describe("Task, monitor or background bash command ID to stop (required if all=false)"),
+      all: tool.schema
+        .boolean()
+        .optional()
+        .describe(
+          "Stop all running background tasks, monitors and background bash commands of this session (default: false)",
+        ),
     },
     async execute(args: BackgroundCancelArgs, toolContext) {
       try {
@@ -54,9 +62,12 @@ export function createBackgroundCancel(
 
         if (cancelAll) {
           const tasks = manager.getAllDescendantTasks(toolContext.sessionID)
-          const cancellableTasks = tasks.filter((t: { status: string }) => t.status === "running" || t.status === "pending")
-          const runningMonitors = (monitorManager?.list(toolContext.sessionID) ?? [])
-            .filter((record) => record.status === "running" || record.status === "starting")
+          const cancellableTasks = tasks.filter(
+            (t: { status: string }) => t.status === "running" || t.status === "pending",
+          )
+          const runningMonitors = (monitorManager?.list(toolContext.sessionID) ?? []).filter(
+            (record) => record.status === "running" || record.status === "starting",
+          )
           for (const record of runningMonitors) {
             await monitorManager?.stop(record.id)
           }
@@ -98,7 +109,7 @@ export function createBackgroundCancel(
           const tableRows = cancelledInfo
             .map(
               (t) =>
-                `| \`${t.id}\` | ${t.description} | ${t.status} | ${t.sessionID ? `\`${t.sessionID}\`` : "(not started)"} |`
+                `| \`${t.id}\` | ${t.description} | ${t.status} | ${t.sessionID ? `\`${t.sessionID}\`` : "(not started)"} |`,
             )
             .join("\n")
 

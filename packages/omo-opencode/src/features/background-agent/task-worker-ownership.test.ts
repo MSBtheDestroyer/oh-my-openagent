@@ -12,11 +12,19 @@ import { probeTaskOwner, TaskWorkerOwnership } from "./task-worker-ownership"
 async function listenCountingConnections(port: number) {
   let connections = 0
   const server = createServer((_request, response) => response.writeHead(404).end())
-  server.on("connection", () => { connections += 1 })
+  server.on("connection", () => {
+    connections += 1
+  })
   const listening = once(server, "listening", { signal: AbortSignal.timeout(5000) })
   server.listen(port, "127.0.0.1")
   await listening
-  return { connections: () => connections, close: () => { server.closeAllConnections(); server.close() } }
+  return {
+    connections: () => connections,
+    close: () => {
+      server.closeAllConnections()
+      server.close()
+    },
+  }
 }
 
 test("an owner whose process exited is dead without contacting the listener that reused its port", async () => {
@@ -38,7 +46,9 @@ test("an owner whose process exited is dead without contacting the listener that
     // then
     expect(state).toBe("dead")
     expect(stranger.connections()).toBe(0)
-  } finally { stranger.close() }
+  } finally {
+    stranger.close()
+  }
 })
 
 test("an owner pid now held by a different process is dead without a request", async () => {
@@ -50,12 +60,17 @@ test("an owner pid now held by a different process is dead without a request", a
   try {
     // when
     const state = await probeTaskOwner({
-      owner, ownerProcess: { pid: process.pid, start: "an-earlier-process" }, sessionId: "child", generation: crypto.randomUUID(),
+      owner,
+      ownerProcess: { pid: process.pid, start: "an-earlier-process" },
+      sessionId: "child",
+      generation: crypto.randomUUID(),
     })
     // then
     expect(state).toBe("dead")
     expect(stranger.connections()).toBe(0)
-  } finally { stranger.close() }
+  } finally {
+    stranger.close()
+  }
 })
 
 test("worker responder disappears on actual Bun worker termination while enclosing PID survives", async () => {
@@ -81,9 +96,19 @@ test("reachable live owners remain owned even when the child is idle", async () 
   try {
     const owner = await worker.open()
     const ownerProcess = await currentOwnerProcess()
-    expect(await probeTaskOwner({ owner, ownerProcess, sessionId: "idle-child", generation: crypto.randomUUID() })).toBe("owned")
-    expect(await probeTaskOwner({ owner: { ...owner, id: crypto.randomUUID() }, sessionId: "idle-child", generation: crypto.randomUUID() })).toBe("unknown")
-  } finally { worker.close() }
+    expect(
+      await probeTaskOwner({ owner, ownerProcess, sessionId: "idle-child", generation: crypto.randomUUID() }),
+    ).toBe("owned")
+    expect(
+      await probeTaskOwner({
+        owner: { ...owner, id: crypto.randomUUID() },
+        sessionId: "idle-child",
+        generation: crypto.randomUUID(),
+      }),
+    ).toBe("unknown")
+  } finally {
+    worker.close()
+  }
 })
 
 test("a reused endpoint with malformed reply is unknown rather than proof of death", async () => {
@@ -96,7 +121,10 @@ test("a reused endpoint with malformed reply is unknown rather than proof of dea
   await listening
   try {
     expect(await probeTaskOwner({ owner, sessionId: "child", generation: crypto.randomUUID() })).toBe("unknown")
-  } finally { server.closeAllConnections(); server.close() }
+  } finally {
+    server.closeAllConnections()
+    server.close()
+  }
 })
 
 test("an owner that does not answer is unknown rather than proof of death", async () => {
@@ -109,5 +137,8 @@ test("an owner that does not answer is unknown rather than proof of death", asyn
   await listening
   try {
     expect(await probeTaskOwner({ owner, sessionId: "child", generation: crypto.randomUUID() })).toBe("unknown")
-  } finally { server.closeAllConnections(); server.close() }
+  } finally {
+    server.closeAllConnections()
+    server.close()
+  }
 })

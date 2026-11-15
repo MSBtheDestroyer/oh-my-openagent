@@ -42,7 +42,8 @@ export function resumeCallFor(job: RunningJob): string {
 
 function summaryOf(job: RunningJob, now: number): string {
   const after = age(job.startedAt, now)
-  if (job.kind === "task") return `Background task "${job.description}" was lost${after}${job.childSessionId ? "" : ", before it started"}`
+  if (job.kind === "task")
+    return `Background task "${job.description}" was lost${after}${job.childSessionId ? "" : ", before it started"}`
   if (job.kind === "monitor") return `Monitor "${job.description}" was lost${after}`
   return `Background command was lost${after}`
 }
@@ -61,7 +62,13 @@ function adviceOf(job: RunningJob): string {
 export function formatLostJobNotice(job: RunningJob, now: number = Date.now()): string {
   if (job.kind === "wake") {
     const notices = job.notifications && job.notifications.length > 0 ? job.notifications : [UNWRITTEN_NOTICE]
-    return ["<system-reminder>", HEADERS.wake, UNDELIVERED_NOTIFICATION_PREAMBLE, "</system-reminder>", ...notices].join("\n")
+    return [
+      "<system-reminder>",
+      HEADERS.wake,
+      UNDELIVERED_NOTIFICATION_PREAMBLE,
+      "</system-reminder>",
+      ...notices,
+    ].join("\n")
   }
   return [
     "<system-reminder>",

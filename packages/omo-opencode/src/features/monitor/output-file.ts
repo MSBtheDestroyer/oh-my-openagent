@@ -53,7 +53,10 @@ export class MonitorOutputFile {
       appendFileSync(this.path, text)
     } catch (error) {
       this.failed = true
-      log("[monitor] Monitor output file write failed; output stays in the ring buffer", { path: this.path, error: String(error) })
+      log("[monitor] Monitor output file write failed; output stays in the ring buffer", {
+        path: this.path,
+        error: String(error),
+      })
     }
   }
 }

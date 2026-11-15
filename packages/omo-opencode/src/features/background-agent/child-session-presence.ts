@@ -22,7 +22,9 @@ async function importBunSqlite(): Promise<typeof import("bun:sqlite") | undefine
  * instance, plugins included, for every directory the sweep touches. Without
  * a readable database every child counts as unknown, so nothing is removed.
  */
-export async function openChildSessionPresence(dbPath = join(getDataDir(), "opencode", "opencode.db")): Promise<ChildSessionPresence | undefined> {
+export async function openChildSessionPresence(
+  dbPath = join(getDataDir(), "opencode", "opencode.db"),
+): Promise<ChildSessionPresence | undefined> {
   if (!existsSync(dbPath)) return undefined
   try {
     const sqlite = await importBunSqlite()

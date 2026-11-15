@@ -1,11 +1,23 @@
 import { describe, expect, test } from "bun:test"
-import { buildBackgroundTaskNotificationText, type BackgroundTaskNotificationInput } from "./background-task-notification-template"
+import {
+  buildBackgroundTaskNotificationText,
+  type BackgroundTaskNotificationInput,
+} from "./background-task-notification-template"
 import { isFailureParentWake } from "./parent-wake-dedupe"
 import { TaskGroupCollector } from "./task-group-collector"
 import type { BackgroundTask } from "./types"
 
 function member(id: string): BackgroundTask {
-  return { id, groupId: "grp_1", parentSessionId: "ses_parent", parentMessageId: "msg", description: id, prompt: "", agent: "explore", status: "completed" }
+  return {
+    id,
+    groupId: "grp_1",
+    parentSessionId: "ses_parent",
+    parentMessageId: "msg",
+    description: id,
+    prompt: "",
+    agent: "explore",
+    status: "completed",
+  }
 }
 
 function notice(id: string, overrides: Partial<BackgroundTaskNotificationInput> = {}): BackgroundTaskNotificationInput {
@@ -70,16 +82,21 @@ describe("TaskGroupCollector", () => {
     groups.collect(member("bg_a"), notice("bg_a"))
 
     // when
-    const last = groups.collect(member("bg_b"), notice("bg_b", {
-      statusText: "ERROR",
-      task: { id: "bg_b", sessionId: "ses_bg_b", description: "bg_b", status: "error", error: "boom" },
-      result: undefined,
-    }))
+    const last = groups.collect(
+      member("bg_b"),
+      notice("bg_b", {
+        statusText: "ERROR",
+        task: { id: "bg_b", sessionId: "ses_bg_b", description: "bg_b", status: "error", error: "boom" },
+        result: undefined,
+      }),
+    )
 
     // then
     const text = last.kind === "deliver" ? last.notification : ""
     expect(text).toContain("<error>boom</error>")
-    expect(isFailureParentWake({ notifications: [text], shouldReply: true } as Parameters<typeof isFailureParentWake>[0])).toBe(true)
+    expect(
+      isFailureParentWake({ notifications: [text], shouldReply: true } as Parameters<typeof isFailureParentWake>[0]),
+    ).toBe(true)
   })
 
   test("#given a child failed to launch #when the size settles below what already finished #then the group is released", () => {
@@ -101,7 +118,9 @@ describe("TaskGroupCollector", () => {
   test("#given a task outside any group #when it finishes #then its own notice is delivered", () => {
     const groups = new TaskGroupCollector()
     const solo = notice("bg_x", { grouped: false })
-    expect(groups.collect({ ...member("bg_x"), groupId: undefined }, solo))
-      .toEqual({ kind: "deliver", notification: buildBackgroundTaskNotificationText(solo) })
+    expect(groups.collect({ ...member("bg_x"), groupId: undefined }, solo)).toEqual({
+      kind: "deliver",
+      notification: buildBackgroundTaskNotificationText(solo),
+    })
   })
 })

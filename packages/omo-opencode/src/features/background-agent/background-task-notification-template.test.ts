@@ -3,7 +3,10 @@ import { buildBackgroundTaskNotificationText } from "./background-task-notificat
 import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
 
 function headerLines(notification: string): string[] {
-  return notification.split("\n").slice(1).filter((line) => /^\[[A-Z ]+[^\]]*\]$/.test(line))
+  return notification
+    .split("\n")
+    .slice(1)
+    .filter((line) => /^\[[A-Z ]+[^\]]*\]$/.test(line))
 }
 
 function tag(notification: string, name: string): string | undefined {
@@ -113,8 +116,23 @@ describe("buildBackgroundTaskNotificationText", () => {
           description: "Fallback task",
           status: "completed",
           attempts: [
-            { attemptId: "att-1", attemptNumber: 1, sessionId: "ses-primary", providerId: "genai-proxy-openai", modelId: "gpt-5.6-luna-fast", status: "error", error: "Forbidden" },
-            { attemptId: "att-2", attemptNumber: 2, sessionId: "ses-fallback", providerId: "anthropic", modelId: "claude-haiku-4.5", status: "completed" },
+            {
+              attemptId: "att-1",
+              attemptNumber: 1,
+              sessionId: "ses-primary",
+              providerId: "genai-proxy-openai",
+              modelId: "gpt-5.6-luna-fast",
+              status: "error",
+              error: "Forbidden",
+            },
+            {
+              attemptId: "att-2",
+              attemptNumber: 2,
+              sessionId: "ses-fallback",
+              providerId: "anthropic",
+              modelId: "claude-haiku-4.5",
+              status: "completed",
+            },
           ],
         },
         duration: "10s",

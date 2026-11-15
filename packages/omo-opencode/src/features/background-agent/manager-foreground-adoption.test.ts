@@ -38,8 +38,13 @@ describe("BackgroundManager.adoptForegroundSession", () => {
     try {
       // when
       const task = await manager.adoptForegroundSession({
-        taskId: "sync_ses_abcd", sessionId: "ses_abcd1234", parentSessionId: "ses_parent",
-        description: "long task", agent: "explore", wake: "none", startedAt: ORIGINAL_START,
+        taskId: "sync_ses_abcd",
+        sessionId: "ses_abcd1234",
+        parentSessionId: "ses_parent",
+        description: "long task",
+        agent: "explore",
+        wake: "none",
+        startedAt: ORIGINAL_START,
       })
 
       // then
@@ -57,17 +62,29 @@ describe("BackgroundManager.adoptForegroundSession", () => {
     // given
     const manager = createManager()
     const finished: BackgroundTask = {
-      id: "bg_old", sessionId: "ses_cont1234", parentSessionId: "ses_old_parent", parentMessageId: "msg",
-      description: "earlier", prompt: "p", agent: "explore", status: "completed",
-      startedAt: new Date(Date.now() - 60_000), completedAt: new Date(Date.now() - 30_000),
+      id: "bg_old",
+      sessionId: "ses_cont1234",
+      parentSessionId: "ses_old_parent",
+      parentMessageId: "msg",
+      description: "earlier",
+      prompt: "p",
+      agent: "explore",
+      status: "completed",
+      startedAt: new Date(Date.now() - 60_000),
+      completedAt: new Date(Date.now() - 30_000),
     }
     manager["tasks"].set(finished.id, finished)
 
     try {
       // when
       const task = await manager.adoptForegroundSession({
-        taskId: "resume_sync_ses_cont", sessionId: "ses_cont1234", parentSessionId: "ses_parent",
-        description: "continued", agent: "explore", wake: "each", startedAt: ORIGINAL_START,
+        taskId: "resume_sync_ses_cont",
+        sessionId: "ses_cont1234",
+        parentSessionId: "ses_parent",
+        description: "continued",
+        agent: "explore",
+        wake: "each",
+        startedAt: ORIGINAL_START,
       })
 
       // then

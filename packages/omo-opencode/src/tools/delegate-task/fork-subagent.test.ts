@@ -38,7 +38,14 @@ describe("task subagent_type fork", () => {
         messages: async () => ({
           data: [
             { info: { role: "user", agent: "build", model: { providerID: "anthropic", modelID: "old" } }, parts: [] },
-            { info: { role: "user", agent: "build", model: { providerID: "openai", modelID: "gpt-fake", variant: "high" } }, parts: [] },
+            {
+              info: {
+                role: "user",
+                agent: "build",
+                model: { providerID: "openai", modelID: "gpt-fake", variant: "high" },
+              },
+              parts: [],
+            },
           ],
         }),
       },

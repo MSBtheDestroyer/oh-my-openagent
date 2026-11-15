@@ -62,7 +62,13 @@ describe("non-interactive-env hook", () => {
     const hook = createNonInteractiveEnvHook(context, config.non_interactive_env)
     const output: { env: Record<string, string> } = { env: {} }
     await hook["shell.env"](agentInput, output)
-    expect(output.env).toEqual({ GIT_TERMINAL_PROMPT: "0", GCM_INTERACTIVE: "never", GIT_PAGER: "cat", PAGER: "cat", PIP_NO_INPUT: "1" })
+    expect(output.env).toEqual({
+      GIT_TERMINAL_PROMPT: "0",
+      GCM_INTERACTIVE: "never",
+      GIT_PAGER: "cat",
+      PAGER: "cat",
+      PIP_NO_INPUT: "1",
+    })
   })
 
   test.each([

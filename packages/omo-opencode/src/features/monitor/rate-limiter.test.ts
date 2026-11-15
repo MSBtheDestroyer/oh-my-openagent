@@ -4,7 +4,12 @@ import { MonitorRateLimiter } from "./rate-limiter"
 describe("MonitorRateLimiter", () => {
   test("#given a fresh limiter #when batches arrive at once #then the burst passes and the rest are refused", () => {
     const limiter = new MonitorRateLimiter(() => 0, 3, 2_000)
-    expect([limiter.tryTake(), limiter.tryTake(), limiter.tryTake(), limiter.tryTake()]).toEqual([true, true, true, false])
+    expect([limiter.tryTake(), limiter.tryTake(), limiter.tryTake(), limiter.tryTake()]).toEqual([
+      true,
+      true,
+      true,
+      false,
+    ])
   })
 
   test("#given an empty bucket #when the refill interval passes #then one more batch is allowed", () => {

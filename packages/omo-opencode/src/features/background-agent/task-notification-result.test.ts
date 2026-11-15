@@ -6,7 +6,14 @@ describe("finalAssistantText", () => {
     // given
     const messages = [
       { info: { role: "user" }, parts: [{ type: "text", text: "go" }] },
-      { info: { role: "assistant" }, parts: [{ type: "reasoning", text: "thinking" }, { type: "text", text: "the answer" }, { type: "text", text: "injected", synthetic: true }] },
+      {
+        info: { role: "assistant" },
+        parts: [
+          { type: "reasoning", text: "thinking" },
+          { type: "text", text: "the answer" },
+          { type: "text", text: "injected", synthetic: true },
+        ],
+      },
       { info: { role: "assistant" }, parts: [{ type: "tool" }] },
     ]
 

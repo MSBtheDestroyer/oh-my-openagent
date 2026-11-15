@@ -34,11 +34,7 @@ import { migrateLegacyWorkspaceDirectory } from "../shared/legacy-workspace-migr
 import { sweepOmoFamiliesBestEffort } from "../shared/omo-process-sweep"
 import { injectServerAuthIntoClient } from "../shared/opencode-server-auth"
 import { recordPluginTelemetry } from "../shared/posthog"
-import {
-  initLiveServerRoute,
-  setLiveParentWakeRoutingDisabled,
-  warmLiveServerProbe,
-} from "../shared/live-server-route"
+import { initLiveServerRoute, setLiveParentWakeRoutingDisabled, warmLiveServerProbe } from "../shared/live-server-route"
 import { startBackgroundCheck as startTmuxCheck } from "../tools/interactive-bash"
 import { runOpenCodeStartupMigration } from "../startup-migration"
 import { registerContinuationConsumer } from "../features/run-continuation-state/loaded-consumer"
@@ -143,19 +139,32 @@ function startupToastBody(input: {
   readonly skippedConflictCount: number
   readonly targetBackupPaths: readonly string[]
 }): Record<string, unknown> | undefined {
-  const summary = input.migratedFrom.length === 0
-    ? ""
-    : `Migrated ${input.migratedFrom.length} legacy source${input.migratedFrom.length === 1 ? "" : "s"}.`
-  const conflicts = input.skippedConflictCount === 0
-    ? ""
-    : ` Kept ${input.skippedConflictCount} existing value${input.skippedConflictCount === 1 ? "" : "s"}.`
+  const summary =
+    input.migratedFrom.length === 0
+      ? ""
+      : `Migrated ${input.migratedFrom.length} legacy source${input.migratedFrom.length === 1 ? "" : "s"}.`
+  const conflicts =
+    input.skippedConflictCount === 0
+      ? ""
+      : ` Kept ${input.skippedConflictCount} existing value${input.skippedConflictCount === 1 ? "" : "s"}.`
   const diagnostics = input.diagnostics.length === 0 ? "" : ` ${input.diagnostics.join(" ")}`
-  const backups = input.targetBackupPaths.length === 0 ? "" : ` Previous config saved as ${input.targetBackupPaths.join(", ")}.`
+  const backups =
+    input.targetBackupPaths.length === 0 ? "" : ` Previous config saved as ${input.targetBackupPaths.join(", ")}.`
   if (input.error !== undefined) {
-    return { title: "Configuration migration failed", message: `${input.error}${backups}${diagnostics}`, variant: "error" }
+    return {
+      title: "Configuration migration failed",
+      message: `${input.error}${backups}${diagnostics}`,
+      variant: "error",
+    }
   }
-  if (summary.length > 0 || backups.length > 0) return { title: "Configuration migrated", message: `${summary}${conflicts}${backups}${diagnostics}`.trim(), variant: "success" }
-  if (diagnostics.length > 0) return { title: "Configuration diagnostics", message: input.diagnostics.join(" "), variant: "warning" }
+  if (summary.length > 0 || backups.length > 0)
+    return {
+      title: "Configuration migrated",
+      message: `${summary}${conflicts}${backups}${diagnostics}`.trim(),
+      variant: "success",
+    }
+  if (diagnostics.length > 0)
+    return { title: "Configuration diagnostics", message: input.diagnostics.join(" "), variant: "warning" }
   return undefined
 }
 
@@ -196,13 +205,11 @@ export function createPluginModule(overrides: Partial<PluginModuleDeps> = {}): P
     // throttled per-family inside the sweep functions. Never awaited and
     // never allowed to reject into startup.
     try {
-      void deps
-        .startOmoProcessSweep()
-        .catch((error: unknown) => {
-          deps.log("[oh-my-openagent] omo process sweep failed", {
-            error: error instanceof Error ? error.message : String(error),
-          })
+      void deps.startOmoProcessSweep().catch((error: unknown) => {
+        deps.log("[oh-my-openagent] omo process sweep failed", {
+          error: error instanceof Error ? error.message : String(error),
         })
+      })
     } catch (error) {
       deps.log("[oh-my-openagent] omo process sweep failed to start", {
         error: error instanceof Error ? error.message : String(error),
@@ -247,7 +254,9 @@ export function createPluginModule(overrides: Partial<PluginModuleDeps> = {}): P
         runtimeSkillSource = await deps.createRuntimeSkillSourceServer({ skills: runtimeSecuritySkills })
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error)
-        console.warn(`[runtime-skills] bundled security skill source unavailable; continuing without config.skills.urls: ${detail}`)
+        console.warn(
+          `[runtime-skills] bundled security skill source unavailable; continuing without config.skills.urls: ${detail}`,
+        )
       }
     }
     deps.initI18n(pluginConfig.i18n?.locale ? { locale: pluginConfig.i18n.locale } : undefined)

@@ -64,29 +64,50 @@ const delegateTaskArgsSchema = {
   load_skills: tool.schema
     .array(tool.schema.string())
     .optional()
-    .describe("Skill names to inject. Optional; defaults to [] when omitted. Pass an explicit array (e.g. [\"git-master\"]) for skill-specific tasks."),
-  description: tool.schema.string().optional().describe("Short task description (3-5 words). Auto-generated from prompt if omitted."),
+    .describe(
+      'Skill names to inject. Optional; defaults to [] when omitted. Pass an explicit array (e.g. ["git-master"]) for skill-specific tasks.',
+    ),
+  description: tool.schema
+    .string()
+    .optional()
+    .describe("Short task description (3-5 words). Auto-generated from prompt if omitted."),
   prompt: tool.schema.string().describe("Full detailed prompt for the agent"),
   run_in_background: tool.schema
     .boolean()
     .optional()
-    .describe("Default true: returns a background task ID `bg_...` at once; a notification with the child's final answer arrives when it finishes (background_output reads it again). false blocks this response until the child finishes; use it only for a short child whose result gates your very next call."),
+    .describe(
+      "Default true: returns a background task ID `bg_...` at once; a notification with the child's final answer arrives when it finishes (background_output reads it again). false blocks this response until the child finishes; use it only for a short child whose result gates your very next call.",
+    ),
   wake: tool.schema
     .enum(["each", "none"])
     .optional()
-    .describe("When a finished background child reports. each (default): every finished child starts your next turn with its result. none: no turn is started; the result waits for your next turn. With items, omitting it reports the whole fan-out once, when the last child finishes."),
+    .describe(
+      "When a finished background child reports. each (default): every finished child starts your next turn with its result. none: no turn is started; the result waits for your next turn. With items, omitting it reports the whole fan-out once, when the last child finishes.",
+    ),
   items: tool.schema
     .array(tool.schema.string())
     .optional()
-    .describe("Fan-out: a list of work items to split across several background children, each given prompt plus its own contiguous slice. One call is one group."),
+    .describe(
+      "Fan-out: a list of work items to split across several background children, each given prompt plus its own contiguous slice. One call is one group.",
+    ),
   split: tool.schema
     .number()
     .int()
     .min(1)
     .optional()
-    .describe("Fan-out: how many children share items (default: one per item). split=2 over 10 items gives 1-5 and 6-10."),
-  category: tool.schema.string().optional().describe("REQUIRED if subagent_type not provided. Do NOT provide both category and subagent_type."),
-  subagent_type: tool.schema.string().optional().describe("REQUIRED if category not provided. Do NOT provide both category and subagent_type. \"fork\": the child starts from a copy of this conversation, on your own agent and model, so the prompt need not repeat context."),
+    .describe(
+      "Fan-out: how many children share items (default: one per item). split=2 over 10 items gives 1-5 and 6-10.",
+    ),
+  category: tool.schema
+    .string()
+    .optional()
+    .describe("REQUIRED if subagent_type not provided. Do NOT provide both category and subagent_type."),
+  subagent_type: tool.schema
+    .string()
+    .optional()
+    .describe(
+      'REQUIRED if category not provided. Do NOT provide both category and subagent_type. "fork": the child starts from a copy of this conversation, on your own agent and model, so the prompt need not repeat context.',
+    ),
   task_id: tool.schema
     .string()
     .optional()
@@ -94,7 +115,8 @@ const delegateTaskArgsSchema = {
 }
 
 export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefinition {
-  const { availableCategories, availableSkills, categoryExamples, description } = createDelegateTaskPresentation(options)
+  const { availableCategories, availableSkills, categoryExamples, description } =
+    createDelegateTaskPresentation(options)
 
   return tool({
     description,
@@ -105,7 +127,11 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
 
       const runInBackground = delegateTaskArgs.run_in_background === true
 
-      const { content: skillContent, contents: skillContents, error: skillError } = await resolveSkillContent(delegateTaskArgs.load_skills, {
+      const {
+        content: skillContent,
+        contents: skillContents,
+        error: skillError,
+      } = await resolveSkillContent(delegateTaskArgs.load_skills, {
         gitMasterConfig: options.gitMasterConfig,
         browserProvider: options.browserProvider,
         disabledSkills: options.disabledSkills,
@@ -119,11 +145,7 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         return skillError
       }
       const nativeSkillEntries = await loadNativeSkillEntries(options.nativeSkills)
-      const nativeSkillInfos = buildPromptNativeSkillInfos(
-        availableSkills,
-        nativeSkillEntries,
-        options.disabledSkills,
-      )
+      const nativeSkillInfos = buildPromptNativeSkillInfos(availableSkills, nativeSkillEntries, options.disabledSkills)
 
       const continuationSystemContent = buildSystemContent({
         skillContent,
@@ -139,7 +161,14 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         if (runInBackground) {
           return executeBackgroundContinuation(delegateTaskArgs, ctx, options, parentContext, continuationSystemContent)
         }
-        return executeSyncContinuation(delegateTaskArgs, ctx, options, parentContext, undefined, continuationSystemContent)
+        return executeSyncContinuation(
+          delegateTaskArgs,
+          ctx,
+          options,
+          parentContext,
+          undefined,
+          continuationSystemContent,
+        )
       }
 
       if (!delegateTaskArgs.category && !delegateTaskArgs.subagent_type) {
@@ -160,9 +189,10 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         : undefined
 
       const currentModelConfig = options.loadCurrentModelConfig?.()
-      const modelOptions = currentModelConfig === undefined
-        ? options
-        : { ...options, userCategories: currentModelConfig.categories, agentOverrides: currentModelConfig.agents }
+      const modelOptions =
+        currentModelConfig === undefined
+          ? options
+          : { ...options, userCategories: currentModelConfig.categories, agentOverrides: currentModelConfig.agents }
 
       let agentToUse: string
       let categoryModel: DelegatedModelConfig | undefined
@@ -174,7 +204,12 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
       let maxPromptTokens: number | undefined
 
       if (delegateTaskArgs.category) {
-        const resolution = await resolveCategoryExecution(delegateTaskArgs, modelOptions, inheritedModel, systemDefaultModel)
+        const resolution = await resolveCategoryExecution(
+          delegateTaskArgs,
+          modelOptions,
+          inheritedModel,
+          systemDefaultModel,
+        )
         if (resolution.error) {
           return resolution.error
         }
@@ -211,11 +246,22 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
             availableSkills,
             nativeSkillInfos,
           })
-          return executeUnstableAgentTask(delegateTaskArgs, ctx, options, parentContext, agentToUse, categoryModel, systemContent, actualModel)
+          return executeUnstableAgentTask(
+            delegateTaskArgs,
+            ctx,
+            options,
+            parentContext,
+            agentToUse,
+            categoryModel,
+            systemContent,
+            actualModel,
+          )
         }
       } else if (isForkSubagent(delegateTaskArgs.subagent_type)) {
         const resolution = resolveForkExecution(
-          parentContext.model ? parentContext : { ...parentContext, model: await readParentModel(options.client, parentContext.sessionID) },
+          parentContext.model
+            ? parentContext
+            : { ...parentContext, model: await readParentModel(options.client, parentContext.sessionID) },
         )
         if (resolution.error !== undefined) {
           return resolution.error
@@ -224,7 +270,12 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         categoryModel = resolution.categoryModel
         delegateTaskArgs.prompt = buildForkTaskPrompt(delegateTaskArgs.prompt)
       } else {
-        const resolution = await resolveSubagentExecution(delegateTaskArgs, modelOptions, parentContext.agent, categoryExamples)
+        const resolution = await resolveSubagentExecution(
+          delegateTaskArgs,
+          modelOptions,
+          parentContext.agent,
+          categoryExamples,
+        )
         if (resolution.error) {
           return resolution.error
         }
@@ -246,14 +297,42 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
       })
 
       if (delegateTaskArgs.items && delegateTaskArgs.items.length > 0) {
-        return executeFanOut(delegateTaskArgs, ctx, options, parentContext, agentToUse, categoryModel, systemContent, fallbackChain)
+        return executeFanOut(
+          delegateTaskArgs,
+          ctx,
+          options,
+          parentContext,
+          agentToUse,
+          categoryModel,
+          systemContent,
+          fallbackChain,
+        )
       }
 
       if (runInBackground) {
-        return executeBackgroundTask(delegateTaskArgs, ctx, options, parentContext, agentToUse, categoryModel, systemContent, fallbackChain)
+        return executeBackgroundTask(
+          delegateTaskArgs,
+          ctx,
+          options,
+          parentContext,
+          agentToUse,
+          categoryModel,
+          systemContent,
+          fallbackChain,
+        )
       }
 
-      return executeSyncTask(delegateTaskArgs, ctx, options, parentContext, agentToUse, categoryModel, systemContent, modelInfo, fallbackChain)
+      return executeSyncTask(
+        delegateTaskArgs,
+        ctx,
+        options,
+        parentContext,
+        agentToUse,
+        categoryModel,
+        systemContent,
+        modelInfo,
+        fallbackChain,
+      )
     },
   })
 }

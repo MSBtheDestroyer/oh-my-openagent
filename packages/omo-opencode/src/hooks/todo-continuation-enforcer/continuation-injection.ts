@@ -19,18 +19,10 @@ import {
 } from "../../features/hook-message-injector"
 import { log } from "../../shared/logger"
 import { isSqliteBackend } from "../../shared/opencode-storage-detection"
-import {
-  getAgentConfigKey,
-  normalizeAgentForPrompt,
-} from "../../shared/agent-display-names"
+import { getAgentConfigKey, normalizeAgentForPrompt } from "../../shared/agent-display-names"
 import { dispatchInternalPrompt, isInternalPromptDispatchAccepted } from "../shared/prompt-async-gate"
 
-import {
-  CONTINUATION_PROMPT,
-  CONTINUATION_COOLDOWN_MS,
-  DEFAULT_SKIP_AGENTS,
-  HOOK_NAME,
-} from "./constants"
+import { CONTINUATION_PROMPT, CONTINUATION_COOLDOWN_MS, DEFAULT_SKIP_AGENTS, HOOK_NAME } from "./constants"
 import { isCompactionGuardActive } from "./compaction-guard"
 import { getMessageDir } from "./message-directory"
 import { isTokenLimitError } from "./token-limit-detection"
@@ -38,7 +30,11 @@ import { isUnrecoverableRequestError } from "./unrecoverable-request-error"
 import { getIncompleteCount } from "./todo"
 import type { ResolvedMessageInfo, Todo } from "./types"
 import type { SessionStateStore } from "./session-state"
-import { captureContinuationPermit, continuationPermitCurrent, type ContinuationPermit } from "../../features/run-continuation-state/host-authority"
+import {
+  captureContinuationPermit,
+  continuationPermitCurrent,
+  type ContinuationPermit,
+} from "../../features/run-continuation-state/host-authority"
 
 function hasWritePermission(tools: Record<string, ToolPermission> | undefined): boolean {
   const editPermission = tools?.edit
@@ -91,8 +87,10 @@ export async function injectContinuation(args: {
   }
 
   const hasRunningBgTasks = backgroundManager
-    ? backgroundManager.getTasksByParentSession(sessionID).some((task: { status: string }) => task.status === "running" || task.status === "pending")
-      || backgroundManager.hasPendingParentWake?.(sessionID) === true
+    ? backgroundManager
+        .getTasksByParentSession(sessionID)
+        .some((task: { status: string }) => task.status === "running" || task.status === "pending") ||
+      backgroundManager.hasPendingParentWake?.(sessionID) === true
     : false
 
   if (hasRunningBgTasks) {
@@ -116,12 +114,19 @@ export async function injectContinuation(args: {
     return
   }
 
-  const permit = args.continuationPermit ?? await captureContinuationPermit(ctx, sessionID, { kind: "todos",
-    keys: todos.filter(todo => todo.status !== "completed" && todo.status !== "cancelled").map(todo => todo.content).sort() })
-  if (!permit || !await continuationPermitCurrent(ctx, sessionID, permit)) return
+  const permit =
+    args.continuationPermit ??
+    (await captureContinuationPermit(ctx, sessionID, {
+      kind: "todos",
+      keys: todos
+        .filter((todo) => todo.status !== "completed" && todo.status !== "cancelled")
+        .map((todo) => todo.content)
+        .sort(),
+    }))
+  if (!permit || !(await continuationPermitCurrent(ctx, sessionID, permit))) return
   if (permit.kind === "scoped" && permit.lease.plan.kind === "todos") {
     const keys = permit.lease.plan.keys
-    todos = todos.filter(todo => keys.includes(todo.content))
+    todos = todos.filter((todo) => keys.includes(todo.content))
     freshIncompleteCount = getIncompleteCount(todos)
   }
 
@@ -144,9 +149,7 @@ export async function injectContinuation(args: {
         ? {
             providerID: previousMessage.model.providerID,
             modelID: previousMessage.model.modelID,
-            ...(previousMessage.model.variant
-              ? { variant: previousMessage.model.variant }
-              : {}),
+            ...(previousMessage.model.variant ? { variant: previousMessage.model.variant } : {}),
           }
         : undefined)
     tools = tools ?? previousMessage?.tools
@@ -154,11 +157,12 @@ export async function injectContinuation(args: {
 
   const agentConfigKey = getAgentConfigKey(agentName ?? "")
   const registeredAgentName = resolveRegisteredAgentName(agentName)
-  const promptAgent = registeredAgentName !== undefined && registeredAgentName !== agentConfigKey
-    ? registeredAgentName
-    : normalizeAgentForPrompt(agentName)
+  const promptAgent =
+    registeredAgentName !== undefined && registeredAgentName !== agentConfigKey
+      ? registeredAgentName
+      : normalizeAgentForPrompt(agentName)
 
-  if (promptAgent && skipAgents.some(s => getAgentConfigKey(s) === getAgentConfigKey(promptAgent))) {
+  if (promptAgent && skipAgents.some((s) => getAgentConfigKey(s) === getAgentConfigKey(promptAgent))) {
     log(`[${HOOK_NAME}] Skipped: agent in skipAgents list`, { sessionID, agent: agentName })
     return
   }
@@ -186,8 +190,10 @@ Remaining tasks:
 ${todoList}`
 
   const hasBackgroundWorkBeforeDispatch = backgroundManager
-    ? backgroundManager.getTasksByParentSession(sessionID).some((task: { status: string }) => task.status === "running" || task.status === "pending")
-      || backgroundManager.hasPendingParentWake?.(sessionID) === true
+    ? backgroundManager
+        .getTasksByParentSession(sessionID)
+        .some((task: { status: string }) => task.status === "running" || task.status === "pending") ||
+      backgroundManager.hasPendingParentWake?.(sessionID) === true
     : false
 
   if (hasBackgroundWorkBeforeDispatch) {
@@ -223,9 +229,7 @@ ${todoList}`
 
     const inheritedTools = resolveInheritedPromptTools(sessionID, tools)
 
-    const launchModel = model
-      ? { providerID: model.providerID, modelID: model.modelID }
-      : undefined
+    const launchModel = model ? { providerID: model.providerID, modelID: model.modelID } : undefined
     const launchVariant = model?.variant
 
     const promptResult = await dispatchInternalPrompt({
@@ -236,8 +240,8 @@ ${todoList}`
       settleMs: 0,
       queueBehavior: "defer",
       semanticDedupeHoldMs: CONTINUATION_COOLDOWN_MS,
-      shouldDispatch: async () => !isContinuationStopped?.(sessionID) &&
-        await continuationPermitCurrent(ctx, sessionID, permit),
+      shouldDispatch: async () =>
+        !isContinuationStopped?.(sessionID) && (await continuationPermitCurrent(ctx, sessionID, permit)),
       input: {
         path: { id: sessionID },
         body: {
@@ -290,15 +294,16 @@ ${todoList}`
       injectionState.lastInjectedAt = Date.now()
       injectionState.consecutiveFailures = (injectionState.consecutiveFailures ?? 0) + 1
 
-      const errorObj = error instanceof Error
-        ? { name: error.name, message: error.message }
-        : { message: String(error) }
+      const errorObj =
+        error instanceof Error ? { name: error.name, message: error.message } : { message: String(error) }
       if (isTokenLimitError(errorObj)) {
         injectionState.tokenLimitDetected = true
         log(`[${HOOK_NAME}] Token limit error detected during injection, stopping continuation`, { sessionID })
       } else if (isUnrecoverableRequestError(error)) {
         injectionState.unrecoverableErrorDetected = true
-        log(`[${HOOK_NAME}] Non-retryable request error detected during injection, stopping continuation`, { sessionID })
+        log(`[${HOOK_NAME}] Non-retryable request error detected during injection, stopping continuation`, {
+          sessionID,
+        })
       }
     }
   }

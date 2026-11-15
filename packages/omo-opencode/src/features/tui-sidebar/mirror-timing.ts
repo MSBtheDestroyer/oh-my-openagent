@@ -29,6 +29,10 @@ function clamp(value: number, min: number, max: number): number {
 // keepalive age: a slower heartbeat would let readers drop a live snapshot as stale.
 export function resolveMirrorTiming(env: MirrorTimingEnv = process.env): MirrorTiming {
   const heartbeatMs = clamp(readPositiveInt(env[HEARTBEAT_ENV]) ?? HEARTBEAT_MS, MIN_HEARTBEAT_MS, MIRROR_KEEPALIVE_MS)
-  const idleRecheckMs = clamp(readPositiveInt(env[IDLE_RECHECK_ENV]) ?? IDLE_RECHECK_MS, heartbeatMs, MAX_IDLE_RECHECK_MS)
+  const idleRecheckMs = clamp(
+    readPositiveInt(env[IDLE_RECHECK_ENV]) ?? IDLE_RECHECK_MS,
+    heartbeatMs,
+    MAX_IDLE_RECHECK_MS,
+  )
   return { heartbeatMs, idleRecheckMs }
 }

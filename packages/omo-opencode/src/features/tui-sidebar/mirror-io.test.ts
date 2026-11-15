@@ -65,9 +65,7 @@ describe("tui-sidebar mirror IPC", () => {
     const storageDir = mirrorStorageDir()
 
     // then
-    expect(storageDir).toBe(
-      join(xdgDataHome, "opencode", "storage", "oh-my-openagent", MIRROR_DIR_NAME),
-    )
+    expect(storageDir).toBe(join(xdgDataHome, "opencode", "storage", "oh-my-openagent", MIRROR_DIR_NAME))
   })
 
   it("#given two project directories #when resolving mirror files #then they map to different files", () => {
@@ -229,7 +227,11 @@ describe("tui-sidebar mirror IPC", () => {
     // when
     const initial = readCached()
     const unchanged = readCached()
-    const rewritten = { ...first, activeAgents: [{ name: "atlas", status: "busy" as const }], updatedAt: Date.now() + 1 }
+    const rewritten = {
+      ...first,
+      activeAgents: [{ name: "atlas", status: "busy" as const }],
+      updatedAt: Date.now() + 1,
+    }
     writeMirror(projectDir, rewritten)
     const afterRewrite = readCached()
     writeMirror(projectDir, snapshotFor(projectDir, Date.now() - STALE_MS - 1_000))

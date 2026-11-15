@@ -16,9 +16,11 @@ describe("interactive bash runtime release", () => {
   test("releases only owned tmux resources and preserves a resumed entry during cleanup", async () => {
     // given
     const abort = mock(async () => undefined)
-    const hook = createInteractiveBashSessionHook(unsafeTestValue<PluginInput>({
-      client: { session: { abort } },
-    }))
+    const hook = createInteractiveBashSessionHook(
+      unsafeTestValue<PluginInput>({
+        client: { session: { abort } },
+      }),
+    )
     const load = spyOn(storage, "loadInteractiveBashSessionState").mockReturnValue(null)
     const save = spyOn(storage, "saveInteractiveBashSessionState").mockImplementation(() => {})
     const clear = spyOn(storage, "clearInteractiveBashSessionState").mockImplementation(() => {})
@@ -28,13 +30,26 @@ describe("interactive bash runtime release", () => {
       killed.push([...command])
       return unsafeTestValue({ exited: killed.length === 1 ? exit.promise : Promise.resolve(0) })
     })
-    restoreSpies.push(() => load.mockRestore(), () => save.mockRestore(), () => clear.mockRestore(), () => spawn.mockRestore())
+    restoreSpies.push(
+      () => load.mockRestore(),
+      () => save.mockRestore(),
+      () => clear.mockRestore(),
+      () => spawn.mockRestore(),
+    )
     subagentSessions.add("interactive-sibling")
-    for (const [sessionID, name] of [["interactive-retired", "omo-owned"], ["interactive-sibling", "omo-sibling"]]) {
-      await hook["tool.execute.after"]({
-        tool: "interactive_bash", sessionID, callID: name,
-        args: { tmux_command: `new-session -d -s ${name}` },
-      }, { title: "", output: "", metadata: {} })
+    for (const [sessionID, name] of [
+      ["interactive-retired", "omo-owned"],
+      ["interactive-sibling", "omo-sibling"],
+    ]) {
+      await hook["tool.execute.after"](
+        {
+          tool: "interactive_bash",
+          sessionID,
+          callID: name,
+          args: { tmux_command: `new-session -d -s ${name}` },
+        },
+        { title: "", output: "", metadata: {} },
+      )
     }
     load.mockClear()
     save.mockClear()
@@ -42,10 +57,15 @@ describe("interactive bash runtime release", () => {
     // when - install a new runtime while the old owned tmux process is exiting
     const release = hook.releaseSession("interactive-retired")
     try {
-      await hook["tool.execute.after"]({
-        tool: "interactive_bash", sessionID: "interactive-retired", callID: "resume",
-        args: { tmux_command: "new-session -d -s omo-resumed" },
-      }, { title: "", output: "", metadata: {} })
+      await hook["tool.execute.after"](
+        {
+          tool: "interactive_bash",
+          sessionID: "interactive-retired",
+          callID: "resume",
+          args: { tmux_command: "new-session -d -s omo-resumed" },
+        },
+        { title: "", output: "", metadata: {} },
+      )
     } finally {
       exit.resolve(0)
       await release

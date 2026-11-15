@@ -77,7 +77,7 @@ describe("createPluginInterface - command.execute.before", () => {
         sessionID: "ses-command-before",
         arguments: "",
       },
-      output as never
+      output as never,
     )
 
     // then
@@ -124,7 +124,7 @@ describe("createPluginInterface - command.execute.before", () => {
         sessionID: "ses-handoff",
         arguments: "",
       },
-      output as never
+      output as never,
     )
 
     // then
@@ -169,7 +169,7 @@ describe("createPluginInterface - command.execute.before", () => {
         sessionID: "ses-command-atlas",
         agent: "prometheus",
       } as never,
-      output as never
+      output as never,
     )
 
     // then
@@ -262,9 +262,11 @@ describe("createPluginInterface - goal native command smoke", () => {
 describe("createPluginInterface - post-compaction ULW restoration", () => {
   test("keeps runtime guidance in system transforms until a real message restores it", async () => {
     const sessionID = "ses-system-ulw"
-    const keywordDetector = createKeywordDetectorHook(unsafeTestValue<PluginInput>({
-      client: { tui: { showToast: async () => {} } },
-    }))
+    const keywordDetector = createKeywordDetectorHook(
+      unsafeTestValue<PluginInput>({
+        client: { tui: { showToast: async () => {} } },
+      }),
+    )
     const pluginInterface = createPluginInterface({
       ctx: { directory: tmpdir(), client: { tui: { showToast: async () => {} } } } as never,
       pluginConfig: {} as never,
@@ -282,7 +284,10 @@ describe("createPluginInterface - post-compaction ULW restoration", () => {
       message: { id: "msg-system-ulw-initial" },
       parts: [{ type: "text", text: "ulw initial" }],
     }
-    await keywordDetector["chat.message"]({ sessionID, agent: "sisyphus", model: { providerID: "openai", modelID: "gpt-fake" } }, initial)
+    await keywordDetector["chat.message"](
+      { sessionID, agent: "sisyphus", model: { providerID: "openai", modelID: "gpt-fake" } },
+      initial,
+    )
     const guidance = initial.parts[0].text.slice(initial.parts[0].text.indexOf("<ultrawork-mode>"))
     keywordDetector.event({ event: { type: "session.compacted", properties: { sessionID } } })
     const renderSystem = async (modelID = "gpt-fake") => {

@@ -99,10 +99,13 @@ describe("memoizeByConfigInputs", () => {
   it("#given an unchanged signature #when called repeatedly #then it computes once", () => {
     // given
     let computeCount = 0
-    const read = memoizeByConfigInputs((directory) => {
-      computeCount += 1
-      return { directory }
-    }, () => "same")
+    const read = memoizeByConfigInputs(
+      (directory) => {
+        computeCount += 1
+        return { directory }
+      },
+      () => "same",
+    )
 
     // when
     const first = read("/project")
@@ -117,10 +120,13 @@ describe("memoizeByConfigInputs", () => {
     // given
     let signature = "a"
     let computeCount = 0
-    const read = memoizeByConfigInputs(() => {
-      computeCount += 1
-      return computeCount
-    }, () => signature)
+    const read = memoizeByConfigInputs(
+      () => {
+        computeCount += 1
+        return computeCount
+      },
+      () => signature,
+    )
     read("/project")
 
     // when
@@ -136,10 +142,13 @@ describe("memoizeByConfigInputs", () => {
   it("#given compute throws #when called again #then it retries instead of caching the failure", () => {
     // given
     let shouldThrow = true
-    const read = memoizeByConfigInputs(() => {
-      if (shouldThrow) throw new Error("config unreadable")
-      return "ok"
-    }, () => "same")
+    const read = memoizeByConfigInputs(
+      () => {
+        if (shouldThrow) throw new Error("config unreadable")
+        return "ok"
+      },
+      () => "same",
+    )
     expect(() => read("/project")).toThrow("config unreadable")
 
     // when

@@ -17,8 +17,8 @@ export function dispatchInternalPrompt<TInput>(
   return dispatchPrompt({
     ...args,
     shouldDispatch: async () => {
-      if (await args.shouldDispatch?.() === false) return false
-      return !await isSessionPaused(args.client, args.sessionID)
+      if ((await args.shouldDispatch?.()) === false) return false
+      return !(await isSessionPaused(args.client, args.sessionID))
     },
   })
 }

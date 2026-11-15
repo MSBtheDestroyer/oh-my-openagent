@@ -12,11 +12,13 @@ export interface MessagePartInfo {
   readonly text: string | undefined
   readonly synthetic: boolean | undefined
   readonly input: Record<string, unknown> | undefined
-  readonly state: {
-    readonly status: string | undefined
-    readonly input: Record<string, unknown> | undefined
-    readonly startedAt: number | undefined
-  } | undefined
+  readonly state:
+    | {
+        readonly status: string | undefined
+        readonly input: Record<string, unknown> | undefined
+        readonly startedAt: number | undefined
+      }
+    | undefined
   readonly field: string | undefined
   readonly activityTime: Date | undefined
 }
@@ -67,18 +69,20 @@ function buildPartInfo(
     type: getStringField(source, "type") ?? getStringField(fallback, "type"),
     delta: getStringField(source, "delta") ?? getStringField(fallback, "delta"),
     tool: getStringField(source, "tool") ?? getStringField(fallback, "tool"),
-    text: getStringField(source, "text")
-      ?? getStringField(source, "delta")
-      ?? getStringField(fallback, "text")
-      ?? getStringField(fallback, "delta"),
+    text:
+      getStringField(source, "text") ??
+      getStringField(source, "delta") ??
+      getStringField(fallback, "text") ??
+      getStringField(fallback, "delta"),
     synthetic: getBooleanField(source, "synthetic") ?? getBooleanField(fallback, "synthetic"),
     input: getRecordField(source, "input") ?? getRecordField(fallback, "input"),
     state: resolveState(source) ?? resolveState(fallback),
     field: getStringField(source, "field") ?? getStringField(fallback, "field"),
-    activityTime: getDateField(source, "activityTime")
-      ?? getDateField(source, "timestamp")
-      ?? getDateField(fallback, "activityTime")
-      ?? getDateField(fallback, "timestamp"),
+    activityTime:
+      getDateField(source, "activityTime") ??
+      getDateField(source, "timestamp") ??
+      getDateField(fallback, "activityTime") ??
+      getDateField(fallback, "timestamp"),
   }
 }
 
@@ -98,14 +102,16 @@ function sessionNextType(eventType: string): string | undefined {
 }
 
 function isTrackedSessionNextActivityEvent(eventType: string): boolean {
-  return eventType === "session.next.synthetic"
-    || eventType === "session.next.retried"
-    || eventType.startsWith("session.next.shell.")
-    || eventType.startsWith("session.next.step.")
-    || eventType.startsWith("session.next.text.")
-    || eventType.startsWith("session.next.reasoning.")
-    || eventType.startsWith("session.next.tool.")
-    || eventType.startsWith("session.next.compaction.")
+  return (
+    eventType === "session.next.synthetic" ||
+    eventType === "session.next.retried" ||
+    eventType.startsWith("session.next.shell.") ||
+    eventType.startsWith("session.next.step.") ||
+    eventType.startsWith("session.next.text.") ||
+    eventType.startsWith("session.next.reasoning.") ||
+    eventType.startsWith("session.next.tool.") ||
+    eventType.startsWith("session.next.compaction.")
+  )
 }
 
 export function resolveSessionNextPartInfo(eventType: string, properties: unknown): MessagePartInfo | undefined {

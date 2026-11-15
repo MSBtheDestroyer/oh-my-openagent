@@ -19,7 +19,11 @@ type TaskSource = {
     status: string
   }>
   /** Wakes owed to a parent session; a finished task's result reaches its parent only through one. */
-  listUndeliveredParentWakes?(): ReadonlyArray<{ sessionID: string; notifications: readonly string[]; queuedAt?: number }>
+  listUndeliveredParentWakes?(): ReadonlyArray<{
+    sessionID: string
+    notifications: readonly string[]
+    queuedAt?: number
+  }>
   queueSessionNotice(sessionID: string, notification: string): Promise<void>
 }
 type MonitorSource = {
@@ -101,7 +105,10 @@ export function createRunningJobsLedger(input: {
     ...(input.pid !== undefined ? { pid: input.pid } : {}),
     ...(input.isAlive ? { isAlive: input.isAlive } : {}),
     onLost: (sessionID, jobs) => {
-      log("[running-jobs] Reporting jobs an earlier process left unfinished:", { sessionID, jobs: jobs.map((job) => job.id) })
+      log("[running-jobs] Reporting jobs an earlier process left unfinished:", {
+        sessionID,
+        jobs: jobs.map((job) => job.id),
+      })
       for (const job of jobs) {
         input.backgroundManager.queueSessionNotice(sessionID, formatLostJobNotice(job)).catch((error) => {
           log("[running-jobs] Could not deliver a lost-job notice:", { sessionID, id: job.id, error: String(error) })

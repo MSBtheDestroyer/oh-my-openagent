@@ -26,9 +26,7 @@ function createPluginInput(promptCalls: PromptCall[], onPrompt: () => void): Plu
   const client = createOpencodeClient({ directory })
   Reflect.set(client.session, "get", async () => ({ data: { metadata: {} } }))
   Reflect.set(client.session, "todo", async () => ({
-    data: [
-      { id: "1", content: "Keep working", status: "pending", priority: "high" },
-    ],
+    data: [{ id: "1", content: "Keep working", status: "pending", priority: "high" }],
   }))
   Reflect.set(client.session, "messages", async () => ({ data: [] }))
   Reflect.set(client.session, "promptAsync", async (input: PromptInput) => {
@@ -74,7 +72,10 @@ describe("todo-continuation-enforcer OpenCode overload errors", () => {
         clearInterval: globalThis.clearInterval,
       }
       const scheduledTimeouts: Array<{ delay: number; callback: TimerCallback; args: unknown[] }> = []
-      const deadline = original.setTimeout(() => injected.reject(new Error("continuation dispatch was not observed")), 5000)
+      const deadline = original.setTimeout(
+        () => injected.reject(new Error("continuation dispatch was not observed")),
+        5000,
+      )
       const fakeSetTimeout = (handler: TimerHandler, delay?: number, ...callbackArgs: unknown[]) => {
         if (typeof handler !== "function") {
           return original.setTimeout(handler, delay, ...callbackArgs)

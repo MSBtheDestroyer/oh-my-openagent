@@ -40,7 +40,7 @@ export async function waitForCompletion(
       return "handed-off"
     }
 
-    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
 
     const statusResult = await ctx.client.session.status()
     const allStatuses = normalizeSDKResponse(statusResult, {} as Record<string, { type: string }>)
@@ -82,7 +82,9 @@ export async function waitForCompletion(
 
   if (Date.now() - pollStart >= MAX_POLL_TIME_MS) {
     log(`[call_omo_agent] Timeout reached`)
-    throw new Error(`Agent task timed out after ${Math.round(MAX_POLL_TIME_MS / 60000)} minutes (background_task.syncPollTimeoutMs).`)
+    throw new Error(
+      `Agent task timed out after ${Math.round(MAX_POLL_TIME_MS / 60000)} minutes (background_task.syncPollTimeoutMs).`,
+    )
   }
   return "completed"
 }

@@ -1,19 +1,46 @@
 import { describe, expect, mock, test } from "bun:test"
-import { BashBackgroundManager, BASH_BACKGROUND_EXITED_EVENT, BASH_BACKGROUND_EXPIRY_MARGIN_MS, BASH_BACKGROUND_STARTED_EVENT } from "./manager"
+import {
+  BashBackgroundManager,
+  BASH_BACKGROUND_EXITED_EVENT,
+  BASH_BACKGROUND_EXPIRY_MARGIN_MS,
+  BASH_BACKGROUND_STARTED_EVENT,
+} from "./manager"
 import { cancelBackgroundJob } from "./cancel-route"
 import type { BashBackgroundExited, BashBackgroundStarted } from "./types"
 
 function started(id: string, sessionID = "ses_parent"): { type: string; properties: BashBackgroundStarted } {
   return {
     type: BASH_BACKGROUND_STARTED_EVENT,
-    properties: { sessionID, messageID: "msg_1", callID: "call_1", id, command: "npm run build", outputPath: `/tmp/${id}`, reason: "requested", timeoutMs: 7_200_000 },
+    properties: {
+      sessionID,
+      messageID: "msg_1",
+      callID: "call_1",
+      id,
+      command: "npm run build",
+      outputPath: `/tmp/${id}`,
+      reason: "requested",
+      timeoutMs: 7_200_000,
+    },
   }
 }
 
-function exited(id: string, overrides: Partial<BashBackgroundExited> = {}): { type: string; properties: BashBackgroundExited } {
+function exited(
+  id: string,
+  overrides: Partial<BashBackgroundExited> = {},
+): { type: string; properties: BashBackgroundExited } {
   return {
     type: BASH_BACKGROUND_EXITED_EVENT,
-    properties: { sessionID: "ses_parent", id, command: "npm run build", status: "failed", exitCode: 2, durationMs: 75_000, outputPath: `/tmp/${id}`, output: "error TS2322\n", ...overrides },
+    properties: {
+      sessionID: "ses_parent",
+      id,
+      command: "npm run build",
+      status: "failed",
+      exitCode: 2,
+      durationMs: 75_000,
+      outputPath: `/tmp/${id}`,
+      output: "error TS2322\n",
+      ...overrides,
+    },
   }
 }
 
@@ -116,7 +143,11 @@ describe("cancelBackgroundJob", () => {
 
     // then
     expect(stopped).toBe(true)
-    expect(post).toHaveBeenCalledWith({ url: "/experimental/background/{jobID}/cancel", path: { jobID: "bash_9" }, query: { directory: "/work/project" } })
+    expect(post).toHaveBeenCalledWith({
+      url: "/experimental/background/{jobID}/cancel",
+      path: { jobID: "bash_9" },
+      query: { directory: "/work/project" },
+    })
   })
 
   test("#given the route answers with an error #when cancelled #then the error is raised", async () => {

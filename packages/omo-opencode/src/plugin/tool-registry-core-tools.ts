@@ -20,7 +20,15 @@ import { createRuntimeSkillsResolver, readRuntimeHostSkills } from "./runtime-sk
 export function createCoreTools(args: {
   readonly ctx: PluginContext
   readonly pluginConfig: OhMyOpenCodeConfig
-  readonly managers: Pick<Managers, "backgroundManager" | "tmuxSessionManager" | "skillMcpManager" | "modelFallbackControllerAccessor" | "monitorManager" | "bashBackgroundManager">
+  readonly managers: Pick<
+    Managers,
+    | "backgroundManager"
+    | "tmuxSessionManager"
+    | "skillMcpManager"
+    | "modelFallbackControllerAccessor"
+    | "monitorManager"
+    | "bashBackgroundManager"
+  >
   readonly skillContext: SkillContext
   readonly availableCategories: AvailableCategory[]
   readonly factories: ToolRegistryFactories
@@ -45,10 +53,12 @@ export function createCoreTools(args: {
   const isMultimodalLookerEnabled = !(pluginConfig.disabled_agents ?? []).some(
     (agent) => agent.toLowerCase() === "multimodal-looker",
   )
-  const nativeSkills = getPluginInputNativeSkills(ctx) ?? createNativeSkills({
-    client: ctx.client,
-    directory: ctx.directory,
-  })
+  const nativeSkills =
+    getPluginInputNativeSkills(ctx) ??
+    createNativeSkills({
+      client: ctx.client,
+      directory: ctx.directory,
+    })
   const getSessionIDForMcp = (): string | undefined => getMainSessionID()
   const getLoadedSkills = createRuntimeSkillsResolver({
     baseSkills: skillContext.mergedSkills,
@@ -155,10 +165,13 @@ export function createCoreTools(args: {
 
   if (pluginConfig.goal?.enabled) {
     const goalController: GoalController = createGoalController({ projectDir: ctx.directory })
-    Object.assign(tools, createGoalTools({
-      controller: goalController,
-      getSessionID: getMainSessionID,
-    }))
+    Object.assign(
+      tools,
+      createGoalTools({
+        controller: goalController,
+        getSessionID: getMainSessionID,
+      }),
+    )
   }
 
   return tools

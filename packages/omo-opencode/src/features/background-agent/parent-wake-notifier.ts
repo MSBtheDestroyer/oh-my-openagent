@@ -24,10 +24,7 @@ export class ParentWakeNotifier {
   private readonly flushRunner: ParentWakeFlushRunner
   private readonly onPendingWakeRequeued?: (sessionID: string) => void
 
-  constructor(
-    deps: ParentWakeNotifierDeps,
-    options: ParentWakeNotifierOptions,
-  ) {
+  constructor(deps: ParentWakeNotifierDeps, options: ParentWakeNotifierOptions) {
     this.onPendingWakeRequeued = deps.onPendingWakeRequeued
     this.pendingQueue = new ParentWakePendingQueue({
       pendingRetryMs: options.pendingRetryMs,
@@ -44,15 +41,8 @@ export class ParentWakeNotifier {
           requeueWake: (latestWake) => this.requeueWake(sessionID, latestWake),
           scheduleFlush: () => this.schedulePendingParentWakeFlush(sessionID),
         }).catch((error: unknown) => {
-          logParentWakeWindowRecoveryError(
-            sessionID,
-            error,
-          )
-          rescheduleParentWakeWindowRecoveryAfterError(
-            sessionID,
-            wake,
-            this.dispatchedTracker,
-          )
+          logParentWakeWindowRecoveryError(sessionID, error)
+          rescheduleParentWakeWindowRecoveryAfterError(sessionID, wake, this.dispatchedTracker)
         })
       },
     })
