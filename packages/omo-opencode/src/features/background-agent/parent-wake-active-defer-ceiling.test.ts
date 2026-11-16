@@ -359,10 +359,13 @@ describe("parent wake active defer ceiling", () => {
 
         // when
         now = 150_000
-        messages = [...SAFE_MESSAGES, {
-          info: { role: "assistant", finish: "stop", time: { created: 146_500, completed: 149_000 } },
-          parts: [{ type: "text", text: "read the group notice" }],
-        }]
+        messages = [
+          ...SAFE_MESSAGES,
+          {
+            info: { role: "assistant", finish: "stop", time: { created: 146_500, completed: 149_000 } },
+            parts: [{ type: "text", text: "read the group notice" }],
+          },
+        ]
         sessionStatuses["parent-1"] = { type: "idle" }
         notifier.clearPendingParentWakeTimer("parent-1")
         await notifier.flushPendingParentWake("parent-1")

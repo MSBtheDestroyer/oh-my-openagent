@@ -80,10 +80,7 @@ async function loadConfigInputs(directory: string): Promise<SidebarConfigInputs>
   return readConfigInputs(directory)
 }
 
-async function readView(
-  directory: string,
-  readMirror: ReturnType<typeof createMirrorReader>,
-): Promise<SidebarView> {
+async function readView(directory: string, readMirror: ReturnType<typeof createMirrorReader>): Promise<SidebarView> {
   const { validation, roster } = await loadConfigInputs(directory)
   const mirror = readMirror()
   return computeView({

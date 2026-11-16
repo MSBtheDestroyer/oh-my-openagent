@@ -4,19 +4,32 @@ import { join } from "node:path"
 import { z } from "zod"
 import { getDataDir } from "../../shared/data-path"
 
-const SyncResumeSchema = z.object({
-  version: z.literal(1),
-  sessionId: z.string().min(1),
-  agent: z.string().min(1),
-  tools: z.record(z.string(), z.boolean()),
-  model: z.object({
-    providerID: z.string().min(1), modelID: z.string().min(1), variant: z.string().optional(),
-    reasoning: z.string().optional(), reasoningEffort: z.string().optional(),
-    temperature: z.number().optional(), top_p: z.number().optional(), maxTokens: z.number().optional(),
-    thinking: z.object({ type: z.enum(["enabled", "disabled"]), budgetTokens: z.number().optional() }).strict().optional(),
-    tools: z.record(z.string(), z.boolean()).optional(),
-  }).strict().optional(),
-}).strict()
+const SyncResumeSchema = z
+  .object({
+    version: z.literal(1),
+    sessionId: z.string().min(1),
+    agent: z.string().min(1),
+    tools: z.record(z.string(), z.boolean()),
+    model: z
+      .object({
+        providerID: z.string().min(1),
+        modelID: z.string().min(1),
+        variant: z.string().optional(),
+        reasoning: z.string().optional(),
+        reasoningEffort: z.string().optional(),
+        temperature: z.number().optional(),
+        top_p: z.number().optional(),
+        maxTokens: z.number().optional(),
+        thinking: z
+          .object({ type: z.enum(["enabled", "disabled"]), budgetTokens: z.number().optional() })
+          .strict()
+          .optional(),
+        tools: z.record(z.string(), z.boolean()).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
 
 export type SyncResumeRecord = z.infer<typeof SyncResumeSchema>
 
@@ -54,8 +67,11 @@ export class SyncResumeStore {
       writeFileSync(temporary, JSON.stringify(parsed), { mode: 0o600, flag: "wx" })
       renameSync(temporary, path)
     } catch (error) {
-      try { unlinkSync(temporary) } catch (cleanupError) {
-        if (!(cleanupError instanceof Error && "code" in cleanupError && cleanupError.code === "ENOENT")) throw cleanupError
+      try {
+        unlinkSync(temporary)
+      } catch (cleanupError) {
+        if (!(cleanupError instanceof Error && "code" in cleanupError && cleanupError.code === "ENOENT"))
+          throw cleanupError
       }
       throw error
     }

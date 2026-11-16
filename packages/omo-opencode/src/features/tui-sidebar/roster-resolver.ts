@@ -79,9 +79,7 @@ export function resolveRoster(directory: string): RosterRow[] {
 
 export function resolveRosterForConfig(config: OhMyOpenCodeConfig): RosterRow[] {
   try {
-    const disabledAgents = new Set(
-      migrateDisabledAgents(config.disabled_agents).map((agent) => agent.toLowerCase()),
-    )
+    const disabledAgents = new Set(migrateDisabledAgents(config.disabled_agents).map((agent) => agent.toLowerCase()))
     const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config))
     return [
       ...resolution.agents.filter((entry) => !disabledAgents.has(entry.name.toLowerCase())),

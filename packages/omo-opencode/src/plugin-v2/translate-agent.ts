@@ -31,7 +31,11 @@ type AgentDraft = Omit<z.infer<typeof agentConfig>, "model"> & {
   readonly authoredPermissions: readonly PermissionRule[]
 }
 
-export function translateAgentConfigToV2Draft(name: string, raw: unknown, options: DelegationOptions = {}): AgentDraft | undefined {
+export function translateAgentConfigToV2Draft(
+  name: string,
+  raw: unknown,
+  options: DelegationOptions = {},
+): AgentDraft | undefined {
   const config = agentConfig.parse(raw)
   if (config.disable) return undefined
   const permissions: { action: string; resource: string; effect: z.infer<typeof effect> }[] = []
@@ -45,15 +49,30 @@ export function translateAgentConfigToV2Draft(name: string, raw: unknown, option
     }
   }
   const slash = config.model?.indexOf("/") ?? -1
-  const model = config.model !== undefined && slash > 0
-    ? { providerID: Provider.ID.make(config.model.slice(0, slash)), id: Model.ID.make(config.model.slice(slash + 1)), ...(config.variant === undefined ? {} : { variant: Model.VariantID.make(config.variant) }) }
-    : undefined
+  const model =
+    config.model !== undefined && slash > 0
+      ? {
+          providerID: Provider.ID.make(config.model.slice(0, slash)),
+          id: Model.ID.make(config.model.slice(slash + 1)),
+          ...(config.variant === undefined ? {} : { variant: Model.VariantID.make(config.variant) }),
+        }
+      : undefined
   const expanded = expandPermissionRules(permissions, options)
-  return { ...config, id: getAgentConfigKey(name), model, authoredPermissions: expanded,
-    permissions: options.delegationOwner === "host" ? projectHostPermissionRules(expanded) : expanded }
+  return {
+    ...config,
+    id: getAgentConfigKey(name),
+    model,
+    authoredPermissions: expanded,
+    permissions: options.delegationOwner === "host" ? projectHostPermissionRules(expanded) : expanded,
+  }
 }
 
-export async function registerV1Agents(ctx: Pick<Plugin.Context, "agent">, value: unknown, defaultAgent: unknown, options: DelegationOptions = {}): Promise<void> {
+export async function registerV1Agents(
+  ctx: Pick<Plugin.Context, "agent">,
+  value: unknown,
+  defaultAgent: unknown,
+  options: DelegationOptions = {},
+): Promise<void> {
   const configs = z.record(z.string(), z.unknown()).parse(value ?? {})
   const drafts = new Map<string, NonNullable<ReturnType<typeof translateAgentConfigToV2Draft>>>()
   const aliases = new Map<string, string>()
@@ -80,7 +99,10 @@ export async function registerV1Agents(ctx: Pick<Plugin.Context, "agent">, value
         agent.hidden = draft.hidden ?? false
         agent.steps = draft.maxSteps ?? draft.steps
         agent.system = draft.prompt
-        const permissions = options.delegationOwner === "host" ? projectHostPermissionRules(draft.authoredPermissions, agent.permissions ?? []) : draft.permissions
+        const permissions =
+          options.delegationOwner === "host"
+            ? projectHostPermissionRules(draft.authoredPermissions, agent.permissions ?? [])
+            : draft.permissions
         agent.permissions = permissions.map((rule) => ({ ...rule }))
         if (draft.temperature !== undefined) agent.request.settings.temperature = draft.temperature
         if (draft.top_p !== undefined) agent.request.settings.topP = draft.top_p

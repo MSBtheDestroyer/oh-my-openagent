@@ -40,9 +40,20 @@ describe("pollSyncSession handoff", () => {
 
     // when
     const result = await pollSyncSession(
-      unsafeTestValue({ sessionID: "ses_parent", messageID: "msg", agent: "sisyphus", abort: new AbortController().signal }),
+      unsafeTestValue({
+        sessionID: "ses_parent",
+        messageID: "msg",
+        agent: "sisyphus",
+        abort: new AbortController().signal,
+      }),
       client,
-      { sessionID: "ses_child", agentToUse: "explore", toastManager: null, taskId: undefined, handoffSignal: controller.signal },
+      {
+        sessionID: "ses_child",
+        agentToUse: "explore",
+        toastManager: null,
+        taskId: undefined,
+        handoffSignal: controller.signal,
+      },
       60_000,
     )
 

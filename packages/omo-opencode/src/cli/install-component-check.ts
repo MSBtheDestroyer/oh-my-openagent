@@ -11,7 +11,10 @@ export interface ComponentCheckLog {
  * It never fails the install and never installs anything: a missing optional server is
  * advice, not an error, and the fixes are printed for the user to choose from.
  */
-export async function reportComponentHealth(log: ComponentCheckLog, options: DoctorComponentOptions = {}): Promise<void> {
+export async function reportComponentHealth(
+  log: ComponentCheckLog,
+  options: DoctorComponentOptions = {},
+): Promise<void> {
   try {
     const report = await gatherComponents(options)
     const issues = buildComponentIssues(report)

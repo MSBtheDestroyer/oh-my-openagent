@@ -6,18 +6,22 @@ import { SessionCategoryRegistry } from "../../shared/session-category-registry"
 import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
 
 describe("runtime-fallback fallback-models", () => {
-  test.each(["session-category", "agent", "agent-category"] as const)("retains canonical fallback settings from %s", (source) => {
-    // given
-    const models = ["fixture/primary", { model: "fixture/secondary", variant: "high", temperature: 0.4 }]
-    const config = source === "agent"
-      ? { agents: { oracle: { models } } }
-      : { agents: { oracle: { category: "quick" } }, categories: { quick: { models } } }
-    if (source === "session-category") SessionCategoryRegistry.register("canonical-session", "quick")
-    // when
-    const result = getRawFallbackModels("canonical-session", "oracle", config)
-    // then
-    expect(result).toEqual([{ model: "fixture/secondary", variant: "high", temperature: 0.4 }])
-  })
+  test.each(["session-category", "agent", "agent-category"] as const)(
+    "retains canonical fallback settings from %s",
+    (source) => {
+      // given
+      const models = ["fixture/primary", { model: "fixture/secondary", variant: "high", temperature: 0.4 }]
+      const config =
+        source === "agent"
+          ? { agents: { oracle: { models } } }
+          : { agents: { oracle: { category: "quick" } }, categories: { quick: { models } } }
+      if (source === "session-category") SessionCategoryRegistry.register("canonical-session", "quick")
+      // when
+      const result = getRawFallbackModels("canonical-session", "oracle", config)
+      // then
+      expect(result).toEqual([{ model: "fixture/secondary", variant: "high", temperature: 0.4 }])
+    },
+  )
 
   test("an explicit empty fallback list overrides the canonical models tail", () => {
     // given
@@ -125,28 +129,27 @@ describe("runtime-fallback fallback-models", () => {
     expect(result).toEqual([])
   })
 
-  test.each([
-    { planner_enabled: false },
-    { replace_plan: false },
-    { disabled: true },
-  ])("does not inherit prometheus fallback_models when plan replacement is disabled: %#", (sisyphusAgent) => {
-    //#given
-    const pluginConfig = unsafeTestValue({
-      sisyphus_agent: sisyphusAgent,
-      agents: {
-        plan: {},
-        prometheus: {
-          fallback_models: ["openai/gpt-5.5"],
+  test.each([{ planner_enabled: false }, { replace_plan: false }, { disabled: true }])(
+    "does not inherit prometheus fallback_models when plan replacement is disabled: %#",
+    (sisyphusAgent) => {
+      //#given
+      const pluginConfig = unsafeTestValue({
+        sisyphus_agent: sisyphusAgent,
+        agents: {
+          plan: {},
+          prometheus: {
+            fallback_models: ["openai/gpt-5.5"],
+          },
         },
-      },
-    })
+      })
 
-    //#when
-    const result = getFallbackModelsForSession("ses_runtime_fallback_plan", "plan", pluginConfig)
+      //#when
+      const result = getFallbackModelsForSession("ses_runtime_fallback_plan", "plan", pluginConfig)
 
-    //#then
-    expect(result).toEqual([])
-  })
+      //#then
+      expect(result).toEqual([])
+    },
+  )
 
   test("does not fall back to another agent chain when agent cannot be resolved", () => {
     //#given

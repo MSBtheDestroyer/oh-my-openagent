@@ -30,9 +30,7 @@ describe("createSyncSession", () => {
     expect(createCalls[0]?.body).toEqual({
       parentID: "ses_parent",
       title: "test task (@explore subagent)",
-      permission: [
-        { permission: "question", action: "deny", pattern: "*" },
-      ],
+      permission: [{ permission: "question", action: "deny", pattern: "*" }],
     })
   })
 
@@ -79,7 +77,9 @@ describe("createSyncSession", () => {
           forkCalls.push(input)
           return { data: { id: "ses_fork" } }
         },
-        messages: async () => ({ data: [{ info: { role: "user" } }, { info: { role: "assistant" } }, { info: { role: "user" } }] }),
+        messages: async () => ({
+          data: [{ info: { role: "user" } }, { info: { role: "assistant" } }, { info: { role: "user" } }],
+        }),
       },
     }
 
@@ -106,7 +106,9 @@ describe("createSyncSession", () => {
 
   test("#given forkFromParent on an opencode without session.fork #when the child is created #then it reports why", async () => {
     // given
-    const client = { session: { get: async () => ({ data: { directory: "/parent" } }), create: async () => ({ data: { id: "x" } }) } }
+    const client = {
+      session: { get: async () => ({ data: { directory: "/parent" } }), create: async () => ({ data: { id: "x" } }) },
+    }
 
     // when
     const result = await createSyncSession(client as never, {

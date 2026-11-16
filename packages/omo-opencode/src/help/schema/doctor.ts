@@ -83,7 +83,16 @@ export const LspLanguageReportSchema = z
     required: z.boolean().describe("Whether --require-lsp named this language"),
     projectFiles: z.number().describe("Files of this language in the scanned project"),
     status: z
-      .enum(["ok", "unverified", "missing", "unconfigured", "wrong_routing", "startup_failed", "timeout", "request_failed"])
+      .enum([
+        "ok",
+        "unverified",
+        "missing",
+        "unconfigured",
+        "wrong_routing",
+        "startup_failed",
+        "timeout",
+        "request_failed",
+      ])
       .describe("Functional status of the server OMO would use"),
     serverId: z.string().nullable().describe("Selected or expected server id"),
     executable: z.string().nullable().describe("Executable that would be spawned"),

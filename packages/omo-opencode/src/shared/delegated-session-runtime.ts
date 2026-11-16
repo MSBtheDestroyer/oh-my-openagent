@@ -1,5 +1,8 @@
 import { clearSessionAgent, subagentSessions, syncSubagentSessions } from "../features/claude-code-session-state"
-import { clearBackgroundOutputConsumptionsForParentSession, clearBackgroundOutputConsumptionsForTaskSession } from "./background-output-consumption"
+import {
+  clearBackgroundOutputConsumptionsForParentSession,
+  clearBackgroundOutputConsumptionsForTaskSession,
+} from "./background-output-consumption"
 import { clearDelegatedChildSessionBootstrap } from "./delegated-child-session-bootstrap"
 import { SessionCategoryRegistry } from "./session-category-registry"
 import { resetMessageCursor } from "./session-cursor"

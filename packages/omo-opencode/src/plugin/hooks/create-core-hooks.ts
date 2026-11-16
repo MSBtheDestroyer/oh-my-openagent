@@ -17,7 +17,15 @@ export function createCoreHooks(args: {
   isHookEnabled: (hookName: HookName) => boolean
   safeHookEnabled: boolean
 }) {
-  const { ctx, pluginConfig, modelCacheState, modelFallbackControllerAccessor, monitorManager, isHookEnabled, safeHookEnabled } = args
+  const {
+    ctx,
+    pluginConfig,
+    modelCacheState,
+    modelFallbackControllerAccessor,
+    monitorManager,
+    isHookEnabled,
+    safeHookEnabled,
+  } = args
 
   const session = createSessionHooks({
     ctx,

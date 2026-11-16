@@ -16,7 +16,7 @@ The category chains below are edition-aware. Senpi uses `kimi-coding` for Kimi r
 | **plan-consultant** | `claude-fable-5-2` | `anthropic\|github-copilot\|opencode/claude-fable-5-2 (max)` → `anthropic\|github-copilot\|opencode/claude-fable-5-1 (max)` → `anthropic\|github-copilot\|opencode/claude-opus-5-5 (max)` → `opencode-go\|kimi-for-coding\|moonshotai/kimi-k3.1-pro (max)` → `opencode/kimi-k3 (max)`
 | **plan-reviewer** | `gpt-6-astra` | `openai\|chatgpt-subscription/gpt-6-astra (xhigh)` → `github-copilot/gpt-6-astra (high)` → `openai\|chatgpt-subscription\|opencode/gpt-6-astra (high)` → `anthropic\|github-copilot\|opencode/claude-opus-5-5 (max)` → `google\|google-vertex\|opencode/gemini-4-argon (high)` → `google\|github-copilot\|opencode/gemini-3.1-pro (high)` → `opencode-go/glm-5.2`
 | **category: visual-engineering** | `claude-fable-5-2` | `anthropic\|anthropic-api\|github-copilot\|opencode/claude-fable-5-2 (max)` → `anthropic\|anthropic-api\|github-copilot\|opencode/claude-fable-5-1 (max)` → `anthropic\|anthropic-api\|github-copilot\|opencode/claude-opus-5-5 (max)` → `kimi-coding\|kimi-for-coding\|moonshotai\|opencode-go/kimi-k3.1-pro (max)` |
-| **category: architect** | `claude-fable-5-2` | `anthropic\|anthropic-api\|github-copilot\|opencode/claude-fable-5-2 (max)` → `anthropic\|anthropic-api\|github-copilot\|opencode/claude-fable-5-1 (max)` |
+| **category: architect** | `claude-fable-5-2` | `anthropic\|anthropic-api\|github-copilot\|opencode/claude-fable-5-2 (xhigh)` → `anthropic\|anthropic-api\|github-copilot\|opencode/claude-fable-5-1 (xhigh)` |
 | **category: ultrabrain** | `gpt-6-astra` | `openai\|chatgpt-subscription/gpt-6-astra (max)` → `github-copilot/gpt-6-astra (max)` → `openai\|chatgpt-subscription\|opencode/gpt-6-astra (max)` → `openai\|chatgpt-subscription/gpt-5.6-sol (max)` → `github-copilot/gpt-5.6-sol (max)` → `openai\|chatgpt-subscription\|opencode/gpt-5.6-sol (max)` |
 | **category: deep-low** | `gpt-6.1-sol` | `openai\|chatgpt-subscription/gpt-6.1-sol (medium)` → `openai\|chatgpt-subscription/gpt-6.1-sol-fast (medium)` → `openai\|chatgpt-subscription\|github-copilot\|opencode/gpt-5.6-sol (medium)` → `openai\|chatgpt-subscription/gpt-5.6-sol-fast (medium)` |
 | **category: deep-high** | `gpt-6-astra` | `openai\|chatgpt-subscription\|github-copilot\|opencode/gpt-6-astra (high)` |
@@ -687,10 +687,12 @@ AST-aware search and rewrite now lives in the `ast-grep` skill. Load it with the
 
 On an opencode build whose `bash` tool runs commands in the background
 (`run_in_background`, or a foreground command moved there at its timeout),
-OMO reports each such command's exit to the session that started it as a
-`<task-notification>` headed `[BASH COMMAND COMPLETED|FAILED|TIMED OUT|CANCELLED]`,
-with the exit code, the end of the output and the output file. A command
-stopped through `background_cancel` sends no exit notice. The runtime limit is
+OMO tracks each such command, so `background_cancel` can stop it by its
+`bash_...` id and the running-jobs ledger lists it. The exit notice, a
+`<task-notification>` headed `[BASH COMMAND COMPLETED|FAILED|TIMED OUT|CANCELLED]`
+with the exit code, the end of the output and the output file, comes from the
+host's plugin (Vibeterm's `opencode-vibeterm-spawn-plugin`), not from OMO; a
+command stopped through `background_cancel` sends none. The runtime limit is
 opencode's `bash_background.timeout`, not an OMO setting.
 
 Background tasks, monitors and background bash commands run inside the

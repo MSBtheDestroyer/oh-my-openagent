@@ -10,6 +10,6 @@ export function isNativeDelegationClient(client: object): boolean {
 }
 
 export function delegationAgentForClient(client: object, agent: string): string {
-  return isNativeDelegationClient(client) ? normalizeAgentForPromptKey(agent) ?? agent : agent
+  return isNativeDelegationClient(client) ? (normalizeAgentForPromptKey(agent) ?? agent) : agent
 }
 import { normalizeAgentForPromptKey } from "./agent-display-names"

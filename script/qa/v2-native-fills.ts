@@ -19,7 +19,13 @@ export type { DriverOptions, ScenarioHost } from "./v2-native-fills-contract"
 if (import.meta.main) {
   const args = z.tuple([z.string(), z.string(), z.string(), scenarioName]).parse(process.argv.slice(2))
   const [evidenceRoot, binary, plugin, scenario] = args
-  const scenarios = { permission: permissionScenario, todos: todosScenario, instructions: instructionsScenario, "default-mode": defaultModeScenario, overflow: overflowScenario }
+  const scenarios = {
+    permission: permissionScenario,
+    todos: todosScenario,
+    instructions: instructionsScenario,
+    "default-mode": defaultModeScenario,
+    overflow: overflowScenario,
+  }
   const result = await withNativeHost<unknown>({ evidenceRoot, binary, plugin, scenario }, scenarios[scenario])
   console.log(JSON.stringify(result))
 }

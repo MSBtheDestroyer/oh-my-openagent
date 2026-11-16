@@ -21,7 +21,7 @@ export function createThinkModeHook() {
       output: {
         message: Record<string, unknown>
         parts: Array<{ type: string; text?: string; [key: string]: unknown }>
-      }
+      },
     ): Promise<void> => {
       const promptText = extractPromptText(output.parts)
       const sessionID = input.sessionID

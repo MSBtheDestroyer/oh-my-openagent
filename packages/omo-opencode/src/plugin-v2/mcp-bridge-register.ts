@@ -7,8 +7,19 @@ const common = {
   timeout: z.number().optional(),
 }
 const mcpConfig = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("remote"), url: z.string().url(), headers: z.record(z.string(), z.string()).optional(), oauth: z.literal(false).optional(), ...common }),
-  z.object({ type: z.literal("local"), command: z.array(z.string()), environment: z.record(z.string(), z.string()).optional(), ...common }),
+  z.object({
+    type: z.literal("remote"),
+    url: z.string().url(),
+    headers: z.record(z.string(), z.string()).optional(),
+    oauth: z.literal(false).optional(),
+    ...common,
+  }),
+  z.object({
+    type: z.literal("local"),
+    command: z.array(z.string()),
+    environment: z.record(z.string(), z.string()).optional(),
+    ...common,
+  }),
 ])
 
 export async function registerV1Mcps(ctx: Plugin.Context, value: unknown): Promise<void> {
@@ -21,10 +32,21 @@ export async function registerV1Mcps(ctx: Plugin.Context, value: unknown): Promi
       }
       switch (config.type) {
         case "remote":
-          editor.set(name, { type: "remote", url: config.url, ...(config.headers === undefined ? {} : { headers: config.headers }), ...(config.oauth === undefined ? {} : { oauth: config.oauth }), ...flags })
+          editor.set(name, {
+            type: "remote",
+            url: config.url,
+            ...(config.headers === undefined ? {} : { headers: config.headers }),
+            ...(config.oauth === undefined ? {} : { oauth: config.oauth }),
+            ...flags,
+          })
           break
         case "local":
-          editor.set(name, { type: "local", command: config.command, ...(config.environment === undefined ? {} : { environment: config.environment }), ...flags })
+          editor.set(name, {
+            type: "local",
+            command: config.command,
+            ...(config.environment === undefined ? {} : { environment: config.environment }),
+            ...flags,
+          })
           break
       }
     }

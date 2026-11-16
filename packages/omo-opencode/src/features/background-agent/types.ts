@@ -4,13 +4,7 @@ import type { SessionPermissionRule } from "../../shared/question-denied-session
 
 export type BackgroundTaskWake = "each" | "none"
 
-export type BackgroundTaskStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "error"
-  | "cancelled"
-  | "interrupt"
+export type BackgroundTaskStatus = "pending" | "running" | "completed" | "error" | "cancelled" | "interrupt"
 
 export interface ToolCallWindow {
   lastSignature: string

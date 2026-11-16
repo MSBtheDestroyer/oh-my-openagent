@@ -23,11 +23,14 @@ describe("host delegation manager ownership", () => {
     }
   })
 
-  test.each([undefined, "plugin"] as const)("default/plugin ownership (%s) invokes the real constructor dependency", (delegationOwner) => {
-    const { args } = createHostDelegationFixture()
+  test.each([undefined, "plugin"] as const)(
+    "default/plugin ownership (%s) invokes the real constructor dependency",
+    (delegationOwner) => {
+      const { args } = createHostDelegationFixture()
 
-    expect(() => createManagers({ ...args, delegationOwner })).toThrow(LegacyConstructorCalledError)
-  })
+      expect(() => createManagers({ ...args, delegationOwner })).toThrow(LegacyConstructorCalledError)
+    },
+  )
 
   test("host plugin disposal shuts down real common resources once across repeated and process disposal", async () => {
     const { args, cleanup, registrations, unregistered } = createHostDelegationFixture()
@@ -36,7 +39,9 @@ describe("host delegation manager ownership", () => {
       backgroundManager: managers.backgroundManager,
       shutdownManagers: managers.shutdown,
       skillMcpManager: managers.skillMcpManager,
-      disposeHooks: () => { cleanup.push("hooks") },
+      disposeHooks: () => {
+        cleanup.push("hooks")
+      },
     })
 
     await Promise.all([dispose(), dispose()])
@@ -52,7 +57,9 @@ describe("host delegation manager ownership", () => {
     const { args, cleanup, registrations } = createHostDelegationFixture()
     const pluginConfig = OhMyOpenCodeConfigSchema.parse({ team_mode: { enabled: true } })
 
-    expect(() => createManagers({ ...args, pluginConfig, delegationOwner: "host" })).toThrow(UnsupportedHostDelegationError)
+    expect(() => createManagers({ ...args, pluginConfig, delegationOwner: "host" })).toThrow(
+      UnsupportedHostDelegationError,
+    )
 
     expect(cleanup).toEqual([])
     expect(registrations).toEqual([])

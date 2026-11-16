@@ -10,7 +10,11 @@ export class LegacyConstructorCalledError extends Error {}
 
 export class UnavailableBackgroundManager extends BackgroundManager {
   constructor(..._args: ConstructorParameters<typeof BackgroundManager>) {
-    super((() => { throw new LegacyConstructorCalledError("Legacy background constructor called") })())
+    super(
+      (() => {
+        throw new LegacyConstructorCalledError("Legacy background constructor called")
+      })(),
+    )
   }
 }
 
@@ -27,7 +31,11 @@ export function createHostDelegationFixture(): {
     project: { id: "host-delegation", worktree: directory, time: { created: 1 } },
     directory,
     worktree: directory,
-    experimental_workspace: { register: () => { throw new Error("Workspace registration is outside this fixture") } },
+    experimental_workspace: {
+      register: () => {
+        throw new Error("Workspace registration is outside this fixture")
+      },
+    },
     serverUrl: new URL("http://127.0.0.1:1"),
     $: Bun.$,
   }
@@ -43,15 +51,28 @@ export function createHostDelegationFixture(): {
   const args = {
     ctx,
     pluginConfig: OhMyOpenCodeConfigSchema.parse({}),
-    tmuxConfig: { enabled: false, layout: "main-vertical", main_pane_size: 60, main_pane_min_width: 120, agent_pane_min_width: 40, isolation: "inline" } as const,
+    tmuxConfig: {
+      enabled: false,
+      layout: "main-vertical",
+      main_pane_size: 60,
+      main_pane_min_width: 120,
+      agent_pane_min_width: 40,
+      isolation: "inline",
+    } as const,
     modelCacheState: createModelCacheState(),
     backgroundNotificationHookEnabled: true,
     deps: {
       BackgroundManagerClass: UnavailableBackgroundManager,
       TmuxSessionManagerClass: TrackedTmuxSessionManager,
-      subscribeSkillDiagnosticsFn: () => () => { cleanup.push("diagnostics") },
-      registerManagerForCleanupFn: (manager: { readonly shutdown: () => void | Promise<void> }) => { registrations.push(manager) },
-      unregisterManagerForCleanupFn: (manager: { readonly shutdown: () => void | Promise<void> }) => { unregistered.push(manager) },
+      subscribeSkillDiagnosticsFn: () => () => {
+        cleanup.push("diagnostics")
+      },
+      registerManagerForCleanupFn: (manager: { readonly shutdown: () => void | Promise<void> }) => {
+        registrations.push(manager)
+      },
+      unregisterManagerForCleanupFn: (manager: { readonly shutdown: () => void | Promise<void> }) => {
+        unregistered.push(manager)
+      },
     },
   } satisfies Parameters<typeof createManagers>[0]
   return { ctx, args, cleanup, registrations, unregistered }

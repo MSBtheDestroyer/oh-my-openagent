@@ -31,15 +31,21 @@ function endOf(record: MonitorEnvelopeRecord): { header: string; status: string;
       header: "[MONITOR EXPIRED]",
       status: "expired",
       summary: `Monitor "${record.label}" expired${after} with ${events} event${events === 1 ? "" : "s"} delivered`,
-      hint: events === 0
-        ? "Re-arm it if you still need the watch - and widen the filter if silence was unexpected."
-        : "Re-arm it if you still need the watch.",
+      hint:
+        events === 0
+          ? "Re-arm it if you still need the watch - and widen the filter if silence was unexpected."
+          : "Re-arm it if you still need the watch.",
     }
   }
   if (record.status === "failed") {
     return { header: "[MONITOR FAILED]", status: "failed", summary: `Monitor "${record.label}" could not keep running` }
   }
-  const how = record.signal !== undefined ? ` (signal ${record.signal})` : record.exitCode !== undefined ? ` (exit code ${record.exitCode})` : ""
+  const how =
+    record.signal !== undefined
+      ? ` (signal ${record.signal})`
+      : record.exitCode !== undefined
+        ? ` (exit code ${record.exitCode})`
+        : ""
   return { header: "[MONITOR ENDED]", status: "completed", summary: `Monitor "${record.label}" stream ended${how}` }
 }
 
@@ -47,7 +53,11 @@ function endOf(record: MonitorEnvelopeRecord): { header: string; status: string;
  * One notice per delivered batch, in the `<task-notification>` shape background tasks use: each stdout line of the
  * batch is an event. The bracketed first line is the sentinel delivery dedupe matches on.
  */
-export function formatMonitorBatch(record: MonitorEnvelopeRecord, batch: OutputBatch, counters: MonitorCounters): string {
+export function formatMonitorBatch(
+  record: MonitorEnvelopeRecord,
+  batch: OutputBatch,
+  counters: MonitorCounters,
+): string {
   const events = batch.lines.flatMap((line) => line.text.split(/\r?\n/))
   const end = batch.stillRunning ? undefined : endOf(record)
   const lines = [
@@ -63,7 +73,9 @@ export function formatMonitorBatch(record: MonitorEnvelopeRecord, batch: OutputB
     "</task-notification>",
   ]
   if (batch.suppressedEvents !== undefined && batch.suppressedEvents > 0) {
-    lines.push(`[${batch.suppressedEvents} events suppressed - output rate too high. Consider stopping this monitor with background_cancel(taskId="${record.id}") and restarting it with a more selective filter.]`)
+    lines.push(
+      `[${batch.suppressedEvents} events suppressed - output rate too high. Consider stopping this monitor with background_cancel(taskId="${record.id}") and restarting it with a more selective filter.]`,
+    )
   }
   if (counters.droppedMatched > 0) {
     lines.push(`[${counters.droppedMatched} lines dropped from memory; the output file still has them.]`)

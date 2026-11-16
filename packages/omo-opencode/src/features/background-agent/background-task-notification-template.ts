@@ -101,7 +101,8 @@ function remainingLine(allComplete: boolean, remainingCount: number): string {
     : `${remainingCount} other background task${remainingCount === 1 ? " is" : "s are"} still running; each one reports on its own. Do not poll.`
 }
 
-const FAILURE_HINT = "**ACTION REQUIRED:** This task did not complete. Check the error and decide whether to retry, cancel related tasks, or continue."
+const FAILURE_HINT =
+  "**ACTION REQUIRED:** This task did not complete. Check the error and decide whether to retry, cancel related tasks, or continue."
 
 /**
  * One notice per finished background task, in the `<task-notification>` shape bash and monitor notices
@@ -117,7 +118,9 @@ export function buildBackgroundTaskNotificationText(input: BackgroundTaskNotific
   const envelope = ["<task-notification>", ...taskFieldLines(input), "</task-notification>"]
 
   const timeline = formatAttemptTimeline(task)
-  const remaining = grouped ? "Reported together with the rest of its fan-out group." : remainingLine(allComplete, remainingCount)
+  const remaining = grouped
+    ? "Reported together with the rest of its fan-out group."
+    : remainingLine(allComplete, remainingCount)
   const readMore = result?.truncated
     ? `The result above is cut short; read all of it with \`background_output(task_id="${task.id}")\`.`
     : `Full transcript: \`background_output(task_id="${task.id}", full_session=true)\`.`
@@ -140,9 +143,14 @@ ${readMore}${continueHint}${failureHint}
  * order, each with its own result. A failed member's `[BACKGROUND TASK <STATUS>]` line joins the headers, so the
  * wake still reads as a failure; the last member decides `[ALL BACKGROUND TASKS COMPLETE]`.
  */
-export function buildTaskGroupNotificationText(groupId: string, members: readonly BackgroundTaskNotificationInput[]): string {
+export function buildTaskGroupNotificationText(
+  groupId: string,
+  members: readonly BackgroundTaskNotificationInput[],
+): string {
   const last = members[members.length - 1]
-  const failures = [...new Set(members.filter((member) => member.statusText !== "COMPLETED").map((member) => member.statusText))]
+  const failures = [
+    ...new Set(members.filter((member) => member.statusText !== "COMPLETED").map((member) => member.statusText)),
+  ]
   const headers = [
     "[BACKGROUND TASK GROUP COMPLETE]",
     ...failures.map((statusText) => `[BACKGROUND TASK ${statusText}]`),
@@ -154,7 +162,9 @@ export function buildTaskGroupNotificationText(groupId: string, members: readonl
       counts[status] = (counts[status] ?? 0) + 1
       return counts
     }, {}),
-  ).map(([status, count]) => `${count} ${status}`).join(", ")
+  )
+    .map(([status, count]) => `${count} ${status}`)
+    .join(", ")
   const envelope = [
     "<task-notification>",
     `<group-id>${groupId}</group-id>`,
@@ -163,11 +173,16 @@ export function buildTaskGroupNotificationText(groupId: string, members: readonl
     ...members.flatMap((member) => ["<task>", ...taskFieldLines(member), "</task>"]),
     "</task-notification>",
   ]
-  const timelines = members.map((member) => formatAttemptTimeline(member.task)).filter((timeline) => timeline.length > 0)
-  const truncated = members.filter((member) => member.result?.truncated).map((member) => `\`background_output(task_id="${member.task.id}")\``)
-  const readMore = truncated.length > 0
-    ? `Some results above are cut short; read them in full with ${truncated.join(", ")}.`
-    : `Full transcripts: \`background_output(task_id="<task-id>", full_session=true)\`.`
+  const timelines = members
+    .map((member) => formatAttemptTimeline(member.task))
+    .filter((timeline) => timeline.length > 0)
+  const truncated = members
+    .filter((member) => member.result?.truncated)
+    .map((member) => `\`background_output(task_id="${member.task.id}")\``)
+  const readMore =
+    truncated.length > 0
+      ? `Some results above are cut short; read them in full with ${truncated.join(", ")}.`
+      : `Full transcripts: \`background_output(task_id="<task-id>", full_session=true)\`.`
 
   return `<system-reminder>
 ${headers.join("\n")}

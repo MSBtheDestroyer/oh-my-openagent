@@ -58,12 +58,17 @@ export function cloneParentWake(wake: PendingParentWake): PendingParentWake {
 }
 
 export function isRedundantParentWake(latestWake: PendingParentWake, dispatchedWake: PendingParentWake): boolean {
-  return parentWakePromptContextMatches(latestWake, dispatchedWake)
-    && parentWakeReplyModeIsCovered(latestWake, dispatchedWake)
-    && parentWakeNotificationsAreCovered(latestWake, dispatchedWake)
+  return (
+    parentWakePromptContextMatches(latestWake, dispatchedWake) &&
+    parentWakeReplyModeIsCovered(latestWake, dispatchedWake) &&
+    parentWakeNotificationsAreCovered(latestWake, dispatchedWake)
+  )
 }
 
-export function mergeParentWakeNotifications(existingNotifications: readonly string[], nextNotification: string): string[] {
+export function mergeParentWakeNotifications(
+  existingNotifications: readonly string[],
+  nextNotification: string,
+): string[] {
   // Every background task notice carries its own result, so none replaces another; only exact repeats collapse.
   if (existingNotifications.includes(nextNotification)) {
     return [...existingNotifications]
@@ -85,15 +90,20 @@ function parentWakeNotificationsAreCovered(latestWake: PendingParentWake, dispat
 }
 
 export function isFailureParentWake(wake: PendingParentWake): boolean {
-  return wake.shouldReply && wake.notifications.some((notification) =>
-    getSystemReminderHeaderLines(notification).some(isBackgroundTaskFailureHeader)
+  return (
+    wake.shouldReply &&
+    wake.notifications.some((notification) =>
+      getSystemReminderHeaderLines(notification).some(isBackgroundTaskFailureHeader),
+    )
   )
 }
 
 function isBackgroundTaskFailureHeader(line: string): boolean {
-  return line === "[BACKGROUND TASK ERROR]"
-    || line === "[BACKGROUND TASK CANCELLED]"
-    || line === "[BACKGROUND TASK INTERRUPTED]"
+  return (
+    line === "[BACKGROUND TASK ERROR]" ||
+    line === "[BACKGROUND TASK CANCELLED]" ||
+    line === "[BACKGROUND TASK INTERRUPTED]"
+  )
 }
 
 function getSystemReminderHeaderLines(notification: string): string[] {
@@ -103,9 +113,8 @@ function getSystemReminderHeaderLines(notification: string): string[] {
     return []
   }
 
-  const headerStartIndex = lines[firstContentLineIndex]?.trim() === "<system-reminder>"
-    ? firstContentLineIndex + 1
-    : firstContentLineIndex
+  const headerStartIndex =
+    lines[firstContentLineIndex]?.trim() === "<system-reminder>" ? firstContentLineIndex + 1 : firstContentLineIndex
   const headerLines: string[] = []
   for (let index = headerStartIndex; index < lines.length; index++) {
     const line = lines[index]?.trim()

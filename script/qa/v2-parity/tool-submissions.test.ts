@@ -37,7 +37,9 @@ test("reads existing registration records and retains distinct submitted tools",
   try {
     // when / then
     expect(await readToolSubmissions(file, new AbortController().signal)).toEqual(["skill", "skill_mcp"])
-  } finally { rmSync(root, { recursive: true, force: true }) }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test.each([true, false])("retains caller cancellation before the read starts=%s", async (abortBefore) => {
@@ -51,7 +53,9 @@ test.each([true, false])("retains caller cancellation before the read starts=%s"
     const pending = readToolSubmissions(file, controller.signal)
     if (!abortBefore) controller.abort(reason)
     await expect(pending).rejects.toBe(reason)
-  } finally { rmSync(root, { recursive: true, force: true }) }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test("rejects malformed registration fields instead of treating them as absent", async () => {
@@ -62,7 +66,9 @@ test("rejects malformed registration fields instead of treating them as absent",
   logger._flushForTesting()
   try {
     await expect(readToolSubmissions(file, new AbortController().signal)).rejects.toBeInstanceOf(ZodError)
-  } finally { rmSync(root, { recursive: true, force: true }) }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test("fails at the bounded deadline when no registration record is written", async () => {
@@ -70,6 +76,10 @@ test("fails at the bounded deadline when no registration record is written", asy
   const file = join(root, "plugin.log")
   writeFileSync(file, "Plugin initialization completed\n")
   try {
-    await expect(readToolSubmissions(file, new AbortController().signal)).rejects.toBeInstanceOf(ToolSubmissionTimeoutError)
-  } finally { rmSync(root, { recursive: true, force: true }) }
+    await expect(readToolSubmissions(file, new AbortController().signal)).rejects.toBeInstanceOf(
+      ToolSubmissionTimeoutError,
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 }, 10000)

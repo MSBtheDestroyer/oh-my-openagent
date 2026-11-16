@@ -32,7 +32,12 @@ export type DelegateModelResolutionInput = {
 }
 
 export type DelegateModelResolutionResult =
-  | { readonly model: string; readonly variant?: string; readonly fallbackEntry?: DelegateFallbackEntry; readonly matchedFallback?: boolean }
+  | {
+      readonly model: string
+      readonly variant?: string
+      readonly fallbackEntry?: DelegateFallbackEntry
+      readonly matchedFallback?: boolean
+    }
   | { readonly skipped: true }
   | undefined
 
@@ -56,11 +61,13 @@ function getExplicitHighBaseModel(model: string): string | null {
   return isExplicitHighModel(model) ? model.replace(/-high$/, "") : null
 }
 
-function parseUserFallbackModel(fallbackModel: string): {
-  readonly baseModel: string
-  readonly providerHint?: string[]
-  readonly variant?: string
-} | undefined {
+function parseUserFallbackModel(fallbackModel: string):
+  | {
+      readonly baseModel: string
+      readonly providerHint?: string[]
+      readonly variant?: string
+    }
+  | undefined {
   const normalizedFallback = normalizeModel(fallbackModel)
   if (!normalizedFallback) {
     return undefined
@@ -93,9 +100,7 @@ export function resolveModelForDelegateTask(
   const userModel = normalizeModel(input.userModel)
   if (userModel) {
     const parsed = parseUserFallbackModel(userModel)
-    const userResult = parsed?.variant
-      ? { model: parsed.baseModel, variant: parsed.variant }
-      : { model: userModel }
+    const userResult = parsed?.variant ? { model: parsed.baseModel, variant: parsed.variant } : { model: userModel }
 
     const userFallbackModels = input.userFallbackModels
     if (
@@ -116,10 +121,13 @@ export function resolveModelForDelegateTask(
             parsedFallback.providerHint,
           )
           if (fbMatch) {
-            deps.log?.("[resolveModelForDelegateTask] user primary model unreachable; promoting user fallback_models entry", {
-              userPrimary: userResult.model,
-              selectedFallback: fbMatch,
-            })
+            deps.log?.(
+              "[resolveModelForDelegateTask] user primary model unreachable; promoting user fallback_models entry",
+              {
+                userPrimary: userResult.model,
+                selectedFallback: fbMatch,
+              },
+            )
             return {
               model: fbMatch,
               variant: parsedFallback.variant,
@@ -205,7 +213,11 @@ export function resolveModelForDelegateTask(
         const parsedFallback = parseUserFallbackModel(fallbackModel)
         if (!parsedFallback) continue
 
-        const match = fuzzyMatchModel(parsedFallback.baseModel, new Set(input.availableModels), parsedFallback.providerHint)
+        const match = fuzzyMatchModel(
+          parsedFallback.baseModel,
+          new Set(input.availableModels),
+          parsedFallback.providerHint,
+        )
         if (match) {
           return { model: match, variant: parsedFallback.variant, matchedFallback: true }
         }
@@ -226,7 +238,12 @@ export function resolveModelForDelegateTask(
                 provider,
                 model: entry.model,
               })
-              return { model: `${provider}/${transformedModelId}`, variant: entry.variant, fallbackEntry: entry, matchedFallback: true }
+              return {
+                model: `${provider}/${transformedModelId}`,
+                variant: entry.variant,
+                fallbackEntry: entry,
+                matchedFallback: true,
+              }
             }
           }
         }
@@ -236,7 +253,12 @@ export function resolveModelForDelegateTask(
         const provider = first?.providers?.[0]
         if (first && provider) {
           const transformedModelId = transformModelForProvider(provider, first.model)
-          return { model: `${provider}/${transformedModelId}`, variant: first.variant, fallbackEntry: first, matchedFallback: true }
+          return {
+            model: `${provider}/${transformedModelId}`,
+            variant: first.variant,
+            fallbackEntry: first,
+            matchedFallback: true,
+          }
         }
       }
     } else {

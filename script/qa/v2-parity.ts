@@ -37,7 +37,10 @@ switch (command.kind) {
     process.once("SIGINT", abort)
     process.once("SIGTERM", abort)
     try {
-      const report = await runParitySuite({ ...command.input, signal: controller.signal }, parityPlan(command.input.baselineBundle))
+      const report = await runParitySuite(
+        { ...command.input, signal: controller.signal },
+        parityPlan(command.input.baselineBundle),
+      )
       process.stdout.write(renderParityReport(report, command.format, await loadHarness(command.input.toolsDirectory)))
       process.exitCode = report.ok ? 0 : 1
     } finally {

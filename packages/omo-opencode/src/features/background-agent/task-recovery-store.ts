@@ -4,40 +4,66 @@ import { join } from "node:path"
 import { z } from "zod"
 import { getDataDir } from "../../shared/data-path"
 
-export const TaskOwnerSchema = z.object({
-  id: z.string().uuid(),
-  hostname: z.string().min(1),
-  port: z.number().int().min(1).max(65535),
-}).strict()
+export const TaskOwnerSchema = z
+  .object({
+    id: z.string().uuid(),
+    hostname: z.string().min(1),
+    port: z.number().int().min(1).max(65535),
+  })
+  .strict()
 
-export const TaskRecoverySchema = z.object({
-  version: z.literal(1),
-  sessionId: z.string().min(1),
-  taskId: z.string().min(1),
-  parentSessionId: z.string().min(1),
-  agent: z.string().min(1),
-  cwd: z.string().min(1),
-  generation: z.string().uuid(),
-  owner: TaskOwnerSchema,
-  category: z.string().optional(),
-  teamRunId: z.string().optional(),
-  concurrencyGroup: z.string().optional(),
-  tools: z.record(z.string(), z.boolean()),
-  model: z.object({
-    providerID: z.string(), modelID: z.string(), variant: z.string().optional(),
-    reasoning: z.string().optional(), reasoningEffort: z.string().optional(),
-    temperature: z.number().optional(), top_p: z.number().optional(), maxTokens: z.number().optional(),
-    thinking: z.object({ type: z.enum(["enabled", "disabled"]), budgetTokens: z.number().optional() }).optional(),
-    tools: z.record(z.string(), z.boolean()).optional(),
-  }).strict().optional(),
-  sessionPermission: z.array(z.object({ permission: z.string(), action: z.enum(["allow", "deny"]), pattern: z.string() })).optional(),
-}).strict()
+export const OwnerProcessSchema = z
+  .object({
+    pid: z.number().int().positive(),
+    start: z.string().min(1),
+  })
+  .strict()
+
+export const TaskRecoverySchema = z
+  .object({
+    version: z.literal(1),
+    sessionId: z.string().min(1),
+    taskId: z.string().min(1),
+    parentSessionId: z.string().min(1),
+    agent: z.string().min(1),
+    cwd: z.string().min(1),
+    generation: z.string().uuid(),
+    owner: TaskOwnerSchema,
+    ownerProcess: OwnerProcessSchema.optional(),
+    category: z.string().optional(),
+    teamRunId: z.string().optional(),
+    concurrencyGroup: z.string().optional(),
+    tools: z.record(z.string(), z.boolean()),
+    model: z
+      .object({
+        providerID: z.string(),
+        modelID: z.string(),
+        variant: z.string().optional(),
+        reasoning: z.string().optional(),
+        reasoningEffort: z.string().optional(),
+        temperature: z.number().optional(),
+        top_p: z.number().optional(),
+        maxTokens: z.number().optional(),
+        thinking: z.object({ type: z.enum(["enabled", "disabled"]), budgetTokens: z.number().optional() }).optional(),
+        tools: z.record(z.string(), z.boolean()).optional(),
+      })
+      .strict()
+      .optional(),
+    sessionPermission: z
+      .array(z.object({ permission: z.string(), action: z.enum(["allow", "deny"]), pattern: z.string() }))
+      .optional(),
+  })
+  .strict()
 
 export type TaskRecoveryRecord = z.infer<typeof TaskRecoverySchema>
 export type TaskOwner = z.infer<typeof TaskOwnerSchema>
+export type OwnerProcess = z.infer<typeof OwnerProcessSchema>
 
 export class TaskRecoveryError extends Error {
-  constructor(readonly sessionId: string, readonly reason: string) {
+  constructor(
+    readonly sessionId: string,
+    readonly reason: string,
+  ) {
     super(`Cannot recover task for session ${sessionId}: ${reason}`)
     this.name = "TaskRecoveryError"
   }
@@ -68,15 +94,20 @@ export class TaskRecoveryStore {
       writeFileSync(temporary, JSON.stringify(TaskRecoverySchema.parse(record)), { mode: 0o600, flag: "wx" })
       renameSync(temporary, path)
     } catch (error) {
-      try { unlinkSync(temporary) } catch (cleanupError) {
-        if (!(cleanupError instanceof Error && "code" in cleanupError && cleanupError.code === "ENOENT")) throw cleanupError
+      try {
+        unlinkSync(temporary)
+      } catch (cleanupError) {
+        if (!(cleanupError instanceof Error && "code" in cleanupError && cleanupError.code === "ENOENT"))
+          throw cleanupError
       }
       throw error
     }
   }
 
   remove(sessionId: string): void {
-    try { unlinkSync(this.path(sessionId)) } catch (error) {
+    try {
+      unlinkSync(this.path(sessionId))
+    } catch (error) {
       if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error
     }
   }
@@ -93,7 +124,9 @@ export class TaskRecoveryStore {
       }
       throw error
     }
-    try { return await operation() } finally {
+    try {
+      return await operation()
+    } finally {
       closeSync(descriptor)
       unlinkSync(lock)
     }

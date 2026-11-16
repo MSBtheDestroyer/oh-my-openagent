@@ -23,7 +23,9 @@ function createPluginContext(client: object): PluginInput {
   }
 }
 
-function createManagerWithStatus(statusImpl: () => Promise<{ data: Record<string, { type: string }> }>): BackgroundManager {
+function createManagerWithStatus(
+  statusImpl: () => Promise<{ data: Record<string, { type: string }> }>,
+): BackgroundManager {
   const client = {
     session: {
       status: statusImpl,
@@ -72,7 +74,6 @@ describe("BackgroundManager polling overlap", () => {
   })
 })
 
-
 function createRunningTask(sessionId: string): BackgroundTask {
   return {
     id: `bg_test_${sessionId}`,
@@ -102,20 +103,25 @@ function createManagerWithClient(clientOverrides: Record<string, unknown> = {}):
       abort: async () => ({}),
       todo: async () => ({ data: [] }),
       messages: async () => ({
-        data: [{
-          info: { role: "assistant", finish: "end_turn", id: "msg-2" },
-          parts: [{ type: "text", text: "done" }],
-        }, {
-          info: { role: "user", id: "msg-1" },
-          parts: [{ type: "text", text: "go" }],
-        }],
+        data: [
+          {
+            info: { role: "assistant", finish: "end_turn", id: "msg-2" },
+            parts: [{ type: "text", text: "done" }],
+          },
+          {
+            info: { role: "user", id: "msg-1" },
+            parts: [{ type: "text", text: "go" }],
+          },
+        ],
       }),
       ...clientOverrides,
     },
   }
-  return new BackgroundManager(
-    { pluginContext: createPluginContext(client), config: undefined, enableParentSessionNotifications: false },
-  )
+  return new BackgroundManager({
+    pluginContext: createPluginContext(client),
+    config: undefined,
+    enableParentSessionNotifications: false,
+  })
 }
 
 describe("BackgroundManager verifySessionExists", () => {
@@ -181,8 +187,14 @@ describe("BackgroundManager pollRunningTasks", () => {
       const manager = createManagerWithClient({
         messages: async () => ({
           data: [
-            { info: { role: "assistant", finish: "tool-calls", id: "msg-1", time: { created: 1_000 } }, parts: [{ type: "text", text: "copied parent text" }] },
-            { info: { role: "user", id: "msg-2", time: { created: 5_000 } }, parts: [{ type: "text", text: "You are a fork" }] },
+            {
+              info: { role: "assistant", finish: "tool-calls", id: "msg-1", time: { created: 1_000 } },
+              parts: [{ type: "text", text: "copied parent text" }],
+            },
+            {
+              info: { role: "user", id: "msg-2", time: { created: 5_000 } },
+              parts: [{ type: "text", text: "You are a fork" }],
+            },
           ],
         }),
       })
@@ -198,14 +210,84 @@ describe("BackgroundManager pollRunningTasks", () => {
       expect(task.status).toBe("running")
     })
 
+    test("#when a fork's copied history already marked its session as having output #then the poll still keeps it running", async () => {
+      //#given
+      const manager = createManagerWithClient({
+        messages: async () => ({
+          data: [
+            {
+              info: { role: "assistant", finish: "tool-calls", id: "msg-1", time: { created: 1_000 } },
+              parts: [{ type: "text", text: "copied parent text" }],
+            },
+            {
+              info: { role: "user", id: "msg-2", time: { created: 5_000 } },
+              parts: [{ type: "text", text: "You are a fork" }],
+            },
+          ],
+        }),
+      })
+      const task = { ...createRunningTask("ses-fork-cached"), ownMessagesSince: 4_000 }
+      injectTask(manager, task)
+      manager["markSessionOutputObserved"]("ses-fork-cached")
+
+      //#when
+      const poll = manager["pollRunningTasks"]
+      await poll.call(manager)
+      manager.shutdown()
+
+      //#then
+      expect(task.status).toBe("running")
+    })
+
+    test("#when a fork's own turn finished with no text #then the poll completes it, so its notice can report the failure", async () => {
+      //#given
+      const manager = createManagerWithClient({
+        messages: async () => ({
+          data: [
+            {
+              info: { role: "assistant", finish: "tool-calls", id: "msg-1", time: { created: 1_000 } },
+              parts: [{ type: "text", text: "copied parent text" }],
+            },
+            {
+              info: { role: "user", id: "msg-2", time: { created: 5_000 } },
+              parts: [{ type: "text", text: "You are a fork" }],
+            },
+            {
+              info: { role: "assistant", finish: "stop", id: "msg-3", time: { created: 6_000, completed: 6_500 } },
+              parts: [{ type: "step-start" }, { type: "step-finish" }],
+            },
+          ],
+        }),
+      })
+      const task = { ...createRunningTask("ses-fork-empty"), ownMessagesSince: 4_000 }
+      injectTask(manager, task)
+
+      //#when
+      const poll = manager["pollRunningTasks"]
+      await poll.call(manager)
+      manager.shutdown()
+
+      //#then
+      expect(task.status).toBe("completed")
+    })
+
     test("#when a fork has written its own answer #then the poll completes it", async () => {
       //#given
       const manager = createManagerWithClient({
         messages: async () => ({
           data: [
-            { info: { role: "assistant", finish: "tool-calls", id: "msg-1", time: { created: 1_000 } }, parts: [{ type: "text", text: "copied parent text" }] },
-            { info: { role: "user", id: "msg-2", time: { created: 5_000 } }, parts: [{ type: "text", text: "You are a fork" }] },
-            { info: { role: "assistant", finish: "stop", id: "msg-3", time: { created: 6_000 } }, parts: [{ type: "text", text: "own answer" }] },
+            {
+              info: { role: "assistant", finish: "tool-calls", id: "msg-1", time: { created: 1_000 } },
+              parts: [{ type: "text", text: "copied parent text" }],
+            },
+            {
+              info: { role: "user", id: "msg-2", time: { created: 5_000 } },
+              parts: [{ type: "text", text: "You are a fork" }],
+            },
+            {
+              info: { role: "assistant", finish: "stop", id: "msg-3", time: { created: 6_000 } },
+              parts: [{ type: "text", text: "own answer" }],
+            },
           ],
         }),
       })
@@ -247,9 +329,17 @@ describe("BackgroundManager pollRunningTasks", () => {
     })
 
     test("#when status polling is unavailable #then it does not complete or increment missed polls", async () => {
-      const cases: Array<{ name: string; status?: (() => Promise<{ data: Record<string, { type: string }> }>) | undefined }> = [
+      const cases: Array<{
+        name: string
+        status?: (() => Promise<{ data: Record<string, { type: string }> }>) | undefined
+      }> = [
         { name: "missing status method", status: undefined },
-        { name: "throwing status method", status: async () => { throw new Error("status unavailable") } },
+        {
+          name: "throwing status method",
+          status: async () => {
+            throw new Error("status unavailable")
+          },
+        },
       ]
 
       for (const testCase of cases) {
@@ -329,10 +419,12 @@ describe("BackgroundManager pollRunningTasks", () => {
         messages: async () => {
           messagesCallCount += 1
           return {
-            data: [{
-              info: { role: "assistant", finish: "end_turn", id: "msg-2" },
-              parts: [{ type: "text", text: "done" }],
-            }],
+            data: [
+              {
+                info: { role: "assistant", finish: "end_turn", id: "msg-2" },
+                parts: [{ type: "text", text: "done" }],
+              },
+            ],
           }
         },
       })
@@ -375,9 +467,7 @@ describe("BackgroundManager pollRunningTasks", () => {
         type: "todo.updated",
         properties: {
           sessionID: "ses-idle-todo-cached",
-          todos: [
-            { id: "todo-1", content: "done", status: "completed", priority: "high" },
-          ],
+          todos: [{ id: "todo-1", content: "done", status: "completed", priority: "high" }],
         },
       })
 
@@ -399,9 +489,7 @@ describe("BackgroundManager pollRunningTasks", () => {
         todo: async () => {
           todoCallCount += 1
           return {
-            data: [
-              { content: "compile result", status: "completed", priority: "high" },
-            ],
+            data: [{ content: "compile result", status: "completed", priority: "high" }],
           }
         },
       })
@@ -416,9 +504,7 @@ describe("BackgroundManager pollRunningTasks", () => {
         type: "todo.updated",
         properties: {
           sessionID: "ses-idle-stale-todos",
-          todos: [
-            { content: "compile result", status: "in_progress", priority: "high" },
-          ],
+          todos: [{ content: "compile result", status: "in_progress", priority: "high" }],
         },
       })
 
@@ -494,7 +580,7 @@ describe("BackgroundManager pollRunningTasks", () => {
       expect(task.completedAt).toBeDefined()
     })
 
-    test('#when session status is an unknown type #then completes the task', async () => {
+    test("#when session status is an unknown type #then completes the task", async () => {
       //#given
       const manager = createManagerWithClient({
         status: async () => ({ data: { "ses-unknown": { type: "some-weird-status" } } }),

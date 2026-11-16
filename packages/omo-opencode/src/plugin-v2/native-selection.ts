@@ -2,7 +2,10 @@ import type { Plugin } from "@opencode/plugin"
 import { UnsupportedHookMappingError } from "./hook-bridge-types"
 
 type NativeSession = Awaited<ReturnType<Plugin.Context["session"]["get"]>>
-export type NativeSelection = { readonly agent: NonNullable<NativeSession["agent"]>; readonly model: NonNullable<NativeSession["model"]> }
+export type NativeSelection = {
+  readonly agent: NonNullable<NativeSession["agent"]>
+  readonly model: NonNullable<NativeSession["model"]>
+}
 export type NativeSelectionContext = {
   readonly app?: Plugin.Context["app"] & { readonly capabilities?: { readonly sessionSelection?: boolean } }
   readonly session: Pick<Plugin.Context["session"], "get"> & {

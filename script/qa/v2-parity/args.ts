@@ -15,11 +15,20 @@ export type ParityCommand =
 
 export function parseParityArgs(argv: readonly string[]): ParityCommand {
   try {
-    const { values, positionals } = parseArgs({ args: [...argv], strict: true, allowPositionals: true, options: {
-      binary: { type: "string" }, "tools-directory": { type: "string" }, "plugin-bundle": { type: "string" },
-      "baseline-bundle": { type: "string" }, "evidence-dir": { type: "string" }, format: { type: "string", default: "text" },
-      help: { type: "boolean", short: "h" },
-    } })
+    const { values, positionals } = parseArgs({
+      args: [...argv],
+      strict: true,
+      allowPositionals: true,
+      options: {
+        binary: { type: "string" },
+        "tools-directory": { type: "string" },
+        "plugin-bundle": { type: "string" },
+        "baseline-bundle": { type: "string" },
+        "evidence-dir": { type: "string" },
+        format: { type: "string", default: "text" },
+        help: { type: "boolean", short: "h" },
+      },
+    })
     if (values.help) return { kind: "help" }
     if (positionals.length > 0) return { kind: "usage-error", detail: `unexpected argument: ${positionals[0]}` }
     type PathFlag = "binary" | "tools-directory" | "plugin-bundle" | "baseline-bundle"
@@ -35,13 +44,21 @@ export function parseParityArgs(argv: readonly string[]): ParityCommand {
       return value
     }
     const baselineBundle = optionalPath("baseline-bundle")
-    if (values.format !== "text" && values.format !== "json") return { kind: "usage-error", detail: `invalid --format: ${values.format}; expected text or json` }
-    if (values["evidence-dir"]?.trim().length === 0) return { kind: "usage-error", detail: "invalid empty path: --evidence-dir" }
-    return { kind: "run", format: values.format, input: {
-      binary: requiredPath("binary"), toolsDirectory: requiredPath("tools-directory"), pluginBundle: requiredPath("plugin-bundle"),
-      ...(baselineBundle === undefined ? {} : { baselineBundle }),
-      evidenceDirectory: resolve(values["evidence-dir"] ?? ".omo/evidence/v2-parity"),
-    } }
+    if (values.format !== "text" && values.format !== "json")
+      return { kind: "usage-error", detail: `invalid --format: ${values.format}; expected text or json` }
+    if (values["evidence-dir"]?.trim().length === 0)
+      return { kind: "usage-error", detail: "invalid empty path: --evidence-dir" }
+    return {
+      kind: "run",
+      format: values.format,
+      input: {
+        binary: requiredPath("binary"),
+        toolsDirectory: requiredPath("tools-directory"),
+        pluginBundle: requiredPath("plugin-bundle"),
+        ...(baselineBundle === undefined ? {} : { baselineBundle }),
+        evidenceDirectory: resolve(values["evidence-dir"] ?? ".omo/evidence/v2-parity"),
+      },
+    }
   } catch (error) {
     if (!(error instanceof Error)) throw error
     return { kind: "usage-error", detail: error.message }

@@ -22,12 +22,23 @@ export function createNativeFills(ctx: Plugin.Context, base: Partial<PluginModul
     ...base,
     createHooks: (args) => {
       compactionEnabled = args.isHookEnabled("compaction-context-injector")
-      const hooks: CreatedHooks = instructions.wrap(buildHooks({
-        ...args,
-        isHookEnabled: (name) => name !== "todo-continuation-enforcer" && name !== "compaction-todo-preserver" && name !== "compaction-context-injector" && args.isHookEnabled(name),
-      }))
-      idleDependencies = { input: args.ctx, enabled: args.isHookEnabled("todo-continuation-enforcer"), isStopped: hooks.stopContinuationGuard?.isStopped }
-      if (hooks.stopContinuationGuard) stop = (sessionID) => stopContinuation({ directory: args.ctx.directory, hooks, sessionID })
+      const hooks: CreatedHooks = instructions.wrap(
+        buildHooks({
+          ...args,
+          isHookEnabled: (name) =>
+            name !== "todo-continuation-enforcer" &&
+            name !== "compaction-todo-preserver" &&
+            name !== "compaction-context-injector" &&
+            args.isHookEnabled(name),
+        }),
+      )
+      idleDependencies = {
+        input: args.ctx,
+        enabled: args.isHookEnabled("todo-continuation-enforcer"),
+        isStopped: hooks.stopContinuationGuard?.isStopped,
+      }
+      if (hooks.stopContinuationGuard)
+        stop = (sessionID) => stopContinuation({ directory: args.ctx.directory, hooks, sessionID })
       return hooks
     },
   }
@@ -38,22 +49,26 @@ export function createNativeFills(ctx: Plugin.Context, base: Partial<PluginModul
       if (idleDependencies) cleanups.push(await registerNativeIdle(ctx, idleDependencies))
       if (stop) {
         const stopSession = stop
-        const command = await ctx.command.transform((editor) => editor.add({
-          name: "stop-continuation",
-          description: "Stop automatic OMO continuation for this session",
-          execute: async ({ sessionID }) => { stopSession(sessionID) },
-        }))
+        const command = await ctx.command.transform((editor) =>
+          editor.add({
+            name: "stop-continuation",
+            description: "Stop automatic OMO continuation for this session",
+            execute: async ({ sessionID }) => {
+              stopSession(sessionID)
+            },
+          }),
+        )
         cleanups.push(() => command.dispose())
       }
     } catch (error) {
       const results = await Promise.allSettled(cleanups.map((cleanup) => cleanup()))
-      const errors = results.flatMap((result) => result.status === "rejected" ? [result.reason] : [])
+      const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []))
       if (errors.length > 0) throw new AggregateError([error, ...errors], "Native v2 fill setup and cleanup failed")
       throw error
     }
     return async () => {
       const results = await Promise.allSettled(cleanups.map((cleanup) => cleanup()))
-      const errors = results.flatMap((result) => result.status === "rejected" ? [result.reason] : [])
+      const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []))
       if (errors.length > 0) throw new AggregateError(errors, "Native v2 fill cleanup failed")
     }
   }

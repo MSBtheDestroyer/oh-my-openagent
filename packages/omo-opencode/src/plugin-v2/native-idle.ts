@@ -1,7 +1,11 @@
 import type { PluginInput } from "@opencode-ai/plugin"
 import type { Plugin } from "@opencode/plugin"
 import type { SessionIdle } from "@opencode/plugin/promise/session"
-import { captureContinuationPermit, continuationBridge, continuationPermitCurrent } from "../features/run-continuation-state/host-authority"
+import {
+  captureContinuationPermit,
+  continuationBridge,
+  continuationPermitCurrent,
+} from "../features/run-continuation-state/host-authority"
 import { CONTINUATION_PROMPT, DEFAULT_SKIP_AGENTS } from "../hooks/todo-continuation-enforcer/constants"
 import { createSessionStateStore } from "../hooks/todo-continuation-enforcer/session-state"
 import { shouldStopForStagnation } from "../hooks/todo-continuation-enforcer/stagnation-detection"
@@ -10,7 +14,10 @@ import { nativeTodos, NativeTodoHistoryUnavailableError } from "./native-todos"
 
 type NativeIdleContext = {
   readonly session: Pick<Plugin.Context["session"], "get" | "context" | "synthetic"> & {
-    readonly hook: (name: "experimental.idle", callback: (event: SessionIdle) => Promise<void>) => Promise<{ readonly dispose: () => Promise<void> }>
+    readonly hook: (
+      name: "experimental.idle",
+      callback: (event: SessionIdle) => Promise<void>,
+    ) => Promise<{ readonly dispose: () => Promise<void> }>
   }
 }
 type NativeIdleDependencies = {
@@ -19,7 +26,10 @@ type NativeIdleDependencies = {
   readonly isStopped?: (sessionID: string) => boolean
 }
 
-export async function registerNativeIdle(ctx: NativeIdleContext, dependencies: NativeIdleDependencies): Promise<() => Promise<void>> {
+export async function registerNativeIdle(
+  ctx: NativeIdleContext,
+  dependencies: NativeIdleDependencies,
+): Promise<() => Promise<void>> {
   if (!dependencies.enabled) return async () => {}
   const states = createSessionStateStore()
   let disposed = false
@@ -28,14 +38,17 @@ export async function registerNativeIdle(ctx: NativeIdleContext, dependencies: N
     // Only work owned by this session wakes it on completion. Descendants wake their own owner.
     if (background.some((work) => work.sessionID === sessionID)) return
     const generation = continuationBridge()?.binding(sessionID)?.generation
-    if (generation && states.getExistingState(sessionID)?.continuationGeneration !== generation) states.cleanup(sessionID)
+    if (generation && states.getExistingState(sessionID)?.continuationGeneration !== generation)
+      states.cleanup(sessionID)
     const state = states.getState(sessionID)
     if (generation) state.continuationGeneration = generation
     if (state.inFlight) return
     state.inFlight = true
     try {
       const session = await ctx.session.get({ sessionID })
-      const agent = session.agent ?? (await ctx.session.context({ sessionID })).findLast((message) => message.type === "assistant")?.agent
+      const agent =
+        session.agent ??
+        (await ctx.session.context({ sessionID })).findLast((message) => message.type === "assistant")?.agent
       if (agent && DEFAULT_SKIP_AGENTS.some((skip) => getAgentConfigKey(skip) === getAgentConfigKey(agent))) return
       let todos: Awaited<ReturnType<typeof nativeTodos>>
       try {
@@ -50,7 +63,8 @@ export async function registerNativeIdle(ctx: NativeIdleContext, dependencies: N
         return
       }
       const permit = await captureContinuationPermit(dependencies.input, sessionID, {
-        kind: "todos", keys: incomplete.map((todo) => todo.content).sort(),
+        kind: "todos",
+        keys: incomplete.map((todo) => todo.content).sort(),
       })
       if (!permit) return
       const plan = permit.kind === "scoped" ? permit.lease.plan : undefined
@@ -58,7 +72,11 @@ export async function registerNativeIdle(ctx: NativeIdleContext, dependencies: N
       const remaining = eligible.filter((todo) => todo.status !== "completed" && todo.status !== "cancelled")
       if (remaining.length === 0) return
       const progressUpdate = states.trackContinuationProgress(sessionID, remaining.length, eligible)
-      if (state.continuationBlockReason || shouldStopForStagnation({ sessionID, incompleteCount: remaining.length, progressUpdate })) return
+      if (
+        state.continuationBlockReason ||
+        shouldStopForStagnation({ sessionID, incompleteCount: remaining.length, progressUpdate })
+      )
+        return
       if (!(await continuationPermitCurrent(dependencies.input, sessionID, permit))) return
       if (disposed || dependencies.isStopped?.(sessionID)) return
       await ctx.session.synthetic({

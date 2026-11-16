@@ -4,7 +4,11 @@ import { createInternalAgentTextPart } from "../../shared/internal-initiator-mar
 export function buildDelegatedPrompt(
   client: object,
   task: { readonly agent: string; readonly prompt: string; readonly skillContent?: string },
-  tuning: { readonly model?: { readonly providerID: string; readonly modelID: string }; readonly variant?: string; readonly tools: Record<string, boolean> },
+  tuning: {
+    readonly model?: { readonly providerID: string; readonly modelID: string }
+    readonly variant?: string
+    readonly tools: Record<string, boolean>
+  },
 ) {
   return {
     agent: delegationAgentForClient(client, task.agent),

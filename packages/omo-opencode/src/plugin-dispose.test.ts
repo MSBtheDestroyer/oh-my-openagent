@@ -7,9 +7,18 @@ describe("createPluginDispose", () => {
   test("uses manager-bundle shutdown without a background manager and continues disposal after its failure", async () => {
     const calls: string[] = []
     const dispose = createPluginDispose({
-      shutdownManagers: async () => { calls.push("managers"); throw new Error("owner shutdown failed") },
-      skillMcpManager: { disconnectAll: async () => { calls.push("skills") } },
-      disposeHooks: () => { calls.push("hooks") },
+      shutdownManagers: async () => {
+        calls.push("managers")
+        throw new Error("owner shutdown failed")
+      },
+      skillMcpManager: {
+        disconnectAll: async () => {
+          calls.push("skills")
+        },
+      },
+      disposeHooks: () => {
+        calls.push("hooks")
+      },
     })
 
     await Promise.all([dispose(), dispose()])
@@ -43,9 +52,17 @@ describe("createPluginDispose", () => {
     // given
     const order: string[] = []
     const dispose = createPluginDispose({
-      backgroundManager: { shutdown: async (): Promise<void> => { order.push("background") } },
+      backgroundManager: {
+        shutdown: async (): Promise<void> => {
+          order.push("background")
+        },
+      },
       skillMcpManager: { disconnectAll: async (): Promise<void> => {} },
-      runningJobsLedger: { shutdown: (): void => { order.push("ledger") } },
+      runningJobsLedger: {
+        shutdown: (): void => {
+          order.push("ledger")
+        },
+      },
       disposeHooks: (): void => {},
     })
 
@@ -124,7 +141,7 @@ describe("createPluginDispose", () => {
     const autoSlashCommandDisposeSpy = spyOn(autoSlashCommand, "dispose")
     const dispose = createPluginDispose({
       backgroundManager: {
-      shutdown: async (): Promise<void> => {},
+        shutdown: async (): Promise<void> => {},
       },
       skillMcpManager: {
         disconnectAll: async (): Promise<void> => {},
@@ -178,9 +195,9 @@ describe("createPluginDispose", () => {
     await dispose()
 
     // then
-      expect(shutdownSpy).toHaveBeenCalledTimes(1)
-      expect(disconnectAllSpy).toHaveBeenCalledTimes(1)
-      expect(disposeHooksSpy).toHaveBeenCalledTimes(1)
+    expect(shutdownSpy).toHaveBeenCalledTimes(1)
+    expect(disconnectAllSpy).toHaveBeenCalledTimes(1)
+    expect(disposeHooksSpy).toHaveBeenCalledTimes(1)
   })
 
   test("#given backgroundManager.shutdown() throws #when dispose() is called #then skillMcpManager.disconnectAll() and disposeHooks() are still called", async () => {

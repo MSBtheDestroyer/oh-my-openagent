@@ -6,7 +6,12 @@ describe("continuation hooks with host delegation", () => {
   test("skips strict background hooks while preserving independent continuation controls", async () => {
     const { ctx, args } = createHostDelegationFixture()
 
-    const hooks = createContinuationHooks({ ctx, pluginConfig: args.pluginConfig, isHookEnabled: () => true, safeHookEnabled: false })
+    const hooks = createContinuationHooks({
+      ctx,
+      pluginConfig: args.pluginConfig,
+      isHookEnabled: () => true,
+      safeHookEnabled: false,
+    })
 
     try {
       expect(hooks.backgroundNotificationHook).toBeNull()

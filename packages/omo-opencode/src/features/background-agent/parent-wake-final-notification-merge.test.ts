@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test"
-import {
-  releaseAllPromptAsyncReservationsForTesting,
-} from "../../hooks/shared/prompt-async-gate"
+import { releaseAllPromptAsyncReservationsForTesting } from "../../hooks/shared/prompt-async-gate"
 import { ParentWakeNotifier } from "./parent-wake-notifier"
 
 type ParentWakeNotifierClientForTest = ConstructorParameters<typeof ParentWakeNotifier>[0]["client"]
 type PromptAsyncCall = Parameters<ParentWakeNotifierClientForTest["session"]["promptAsync"]>[0]
 
-const FINAL_WAKE = "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n**Completed:**\n- `task-a`: task A\n- `task-b`: task B\n</system-reminder>"
-const EARLIER_WAKE = "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n<task-id>task-a</task-id>\n<result>\nA's answer\n</result>\n</system-reminder>"
+const FINAL_WAKE =
+  "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n**Completed:**\n- `task-a`: task A\n- `task-b`: task B\n</system-reminder>"
+const EARLIER_WAKE =
+  "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n<task-id>task-a</task-id>\n<result>\nA's answer\n</result>\n</system-reminder>"
 
 function createNotifier(): {
   readonly notifier: ParentWakeNotifier
@@ -81,7 +81,9 @@ describe("ParentWakeNotifier final notification merge", () => {
       expect(promptAsyncCalls).toHaveLength(1)
       const notificationText = getPromptText(promptAsyncCalls[0])
       expect(notificationText.indexOf("<task-id>task-a</task-id>")).toBeGreaterThan(-1)
-      expect(notificationText.indexOf("<task-id>task-a</task-id>")).toBeLessThan(notificationText.indexOf("[ALL BACKGROUND TASKS COMPLETE]"))
+      expect(notificationText.indexOf("<task-id>task-a</task-id>")).toBeLessThan(
+        notificationText.indexOf("[ALL BACKGROUND TASKS COMPLETE]"),
+      )
       expect(notificationText).toContain("A's answer")
       expect(promptAsyncCalls[0]?.body.noReply).toBe(false)
     } finally {

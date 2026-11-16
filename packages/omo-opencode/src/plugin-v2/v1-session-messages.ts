@@ -34,7 +34,10 @@ function assistantPart(part: AssistantPart) {
             tool: part.name,
             state: {
               ...state,
-              output: state.content.filter((content) => content.type === "text").map((content) => content.text).join("\n"),
+              output: state.content
+                .filter((content) => content.type === "text")
+                .map((content) => content.text)
+                .join("\n"),
             },
           }
         case "error":
@@ -65,14 +68,21 @@ export function projectV1Message(message: V2SessionMessage, sessionID: string): 
         info: { ...base, role: "user" as const },
         parts: [
           { type: "text" as const, text: message.text },
-          ...(message.files ?? []).map((file) => ({ ...file, type: "file" as const, url: file.source.type === "uri" ? file.source.uri : new URL(`data:${file.mime};base64,${file.data}`).href })),
+          ...(message.files ?? []).map((file) => ({
+            ...file,
+            type: "file" as const,
+            url: file.source.type === "uri" ? file.source.uri : new URL(`data:${file.mime};base64,${file.data}`).href,
+          })),
           ...(message.agents ?? []).map((agent) => ({ ...agent, type: "agent" as const })),
           ...(message.skills ?? []).map((skill) => ({ ...skill, type: "skill" as const })),
         ],
       }
     case "synthetic":
     case "system":
-      return { info: { ...base, role: "user" as const }, parts: [{ type: "text" as const, text: message.text, synthetic: true }] }
+      return {
+        info: { ...base, role: "user" as const },
+        parts: [{ type: "text" as const, text: message.text, synthetic: true }],
+      }
     case "agent-switched":
     case "model-switched":
     case "location-switched":

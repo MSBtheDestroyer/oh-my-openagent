@@ -5,11 +5,21 @@ import { createNativeInstructions } from "./native-instructions"
 
 function fixture() {
   const entries = new Map<string, Parameters<Plugin.Context["session"]["instructions"]["entry"]["put"]>[0]["value"]>()
-  const instructions = createNativeInstructions({ session: { instructions: { entry: {
-    list: async () => [],
-    put: async ({ key, value }) => { entries.set(key, value) },
-    remove: async ({ key }) => { entries.delete(key) },
-  } } } })
+  const instructions = createNativeInstructions({
+    session: {
+      instructions: {
+        entry: {
+          list: async () => [],
+          put: async ({ key, value }) => {
+            entries.set(key, value)
+          },
+          remove: async ({ key }) => {
+            entries.delete(key)
+          },
+        },
+      },
+    },
+  })
   return { entries, instructions }
 }
 
@@ -30,10 +40,17 @@ describe("native OMO instruction carriers", () => {
   test("moves rule additions into persistent entries while retaining the original tool output", async () => {
     // given
     const { entries, instructions } = fixture()
-    const hooks = instructions.wrap({ keywordDetector: null, rulesInjector: {
-      releaseSession: () => {}, event: async () => {}, "tool.execute.before": async () => {},
-      "tool.execute.after": async (_input, output) => { output.output += "\nrule fixture" },
-    } })
+    const hooks = instructions.wrap({
+      keywordDetector: null,
+      rulesInjector: {
+        releaseSession: () => {},
+        event: async () => {},
+        "tool.execute.before": async () => {},
+        "tool.execute.after": async (_input, output) => {
+          output.output += "\nrule fixture"
+        },
+      },
+    })
     const output = { title: "file", output: "file content", metadata: {} }
     // when
     await hooks.rulesInjector?.["tool.execute.after"]({ tool: "read", sessionID: "session", callID: "call" }, output)
@@ -45,16 +62,35 @@ describe("native OMO instruction carriers", () => {
   test("retains rule output if storing its instruction fails", async () => {
     // given
     const rejected = new Error("instruction write rejected")
-    const instructions = createNativeInstructions({ session: { instructions: { entry: {
-      list: async () => [], put: async () => { throw rejected }, remove: async () => {},
-    } } } })
-    const hooks = instructions.wrap({ keywordDetector: null, rulesInjector: {
-      releaseSession: () => {}, event: async () => {}, "tool.execute.before": async () => {},
-      "tool.execute.after": async (_input, output) => { output.output += "\nrule fixture" },
-    } })
+    const instructions = createNativeInstructions({
+      session: {
+        instructions: {
+          entry: {
+            list: async () => [],
+            put: async () => {
+              throw rejected
+            },
+            remove: async () => {},
+          },
+        },
+      },
+    })
+    const hooks = instructions.wrap({
+      keywordDetector: null,
+      rulesInjector: {
+        releaseSession: () => {},
+        event: async () => {},
+        "tool.execute.before": async () => {},
+        "tool.execute.after": async (_input, output) => {
+          output.output += "\nrule fixture"
+        },
+      },
+    })
     const output = { title: "file", output: "file content", metadata: {} }
     // when / then
-    await expect(hooks.rulesInjector?.["tool.execute.after"]({ tool: "read", sessionID: "session", callID: "call" }, output)).rejects.toBe(rejected)
+    await expect(
+      hooks.rulesInjector?.["tool.execute.after"]({ tool: "read", sessionID: "session", callID: "call" }, output),
+    ).rejects.toBe(rejected)
     expect(output.output).toBe("file content\nrule fixture")
   })
 

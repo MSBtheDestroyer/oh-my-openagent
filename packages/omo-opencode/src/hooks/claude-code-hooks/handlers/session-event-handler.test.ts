@@ -5,10 +5,7 @@ import { unsafeTestValue } from "../../../../../../test-support/unsafe-test-valu
 import { ContextCollector } from "../../../features/context-injector"
 import { cacheToolInput, getToolInput, stopToolInputCacheCleanup } from "../tool-input-cache"
 import { buildTranscriptFromSession, hasTranscriptCacheEntry, stopTranscriptCacheCleanup } from "../transcript"
-import {
-  clearAllSessionHookState,
-  sessionFirstMessageProcessed,
-} from "../session-hook-state"
+import { clearAllSessionHookState, sessionFirstMessageProcessed } from "../session-hook-state"
 import { getStopHookActive, setStopHookActive } from "../stop"
 import { createSessionEventHandler, disposeSessionEventHandler } from "./session-event-handler"
 
@@ -32,13 +29,21 @@ describe("createSessionEventHandler", () => {
     // given
     const fetched: string[] = []
     const collector = new ContextCollector()
-    const handler = createSessionEventHandler(unsafeTestValue<PluginInput>({
-      directory: "/test",
-      client: { session: { get: async ({ path }: { path: { id: string } }) => {
-        fetched.push(path.id)
-        return { data: { parentID: "parent" } }
-      } } },
-    }), { disabledHooks: true }, collector)
+    const handler = createSessionEventHandler(
+      unsafeTestValue<PluginInput>({
+        directory: "/test",
+        client: {
+          session: {
+            get: async ({ path }: { path: { id: string } }) => {
+              fetched.push(path.id)
+              return { data: { parentID: "parent" } }
+            },
+          },
+        },
+      }),
+      { disabledHooks: true },
+      collector,
+    )
     for (const sessionID of ["claude-retired", "claude-sibling"]) {
       await handler({ event: { type: "session.idle", properties: { sessionID } } })
       sessionFirstMessageProcessed.add(sessionID)

@@ -94,6 +94,26 @@ describe("writeFileAtomically", () => {
     expect(readFileSync(filePath, "utf-8")).toBe(content)
   })
 
+  it("#given a non-durable write #when writeFileAtomically called #then it renames into place without fsync", () => {
+    // given
+    const filePath = join(testDir, "regenerable.txt")
+    writeFileSync(filePath, "old", "utf-8")
+    let fsyncCalls = 0
+
+    // when
+    writeFileAtomically(filePath, "new", {
+      durable: false,
+      fsyncSync: () => {
+        fsyncCalls++
+      },
+    })
+
+    // then
+    expect(fsyncCalls).toBe(0)
+    expect(readFileSync(filePath, "utf-8")).toBe("new")
+    expect(existsSync(`${filePath}.tmp`)).toBe(false)
+  })
+
   it("#given fsync fails with EIO (real I/O error) #when writeFileAtomically called #then propagates the error", () => {
     // given
     const filePath = join(testDir, "io-error.txt")

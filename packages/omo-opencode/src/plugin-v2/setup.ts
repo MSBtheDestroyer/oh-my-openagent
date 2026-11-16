@@ -37,12 +37,17 @@ async function projectConfig(ctx: Plugin.Context): Promise<ProjectedConfig> {
 
 export async function setupV2Bridge(ctx: Plugin.Context): Promise<Plugin.Cleanup> {
   const input = buildV1Input(ctx, createV1ClientAdapter(ctx, { delegationOwner: "host" }))
-  const runtime = createNativeTaskRuntime(ctx, { ...createNativeJobDependencies(ctx), getPluginConfig: () => loadPluginConfig(input.directory, process.env) })
+  const runtime = createNativeTaskRuntime(ctx, {
+    ...createNativeJobDependencies(ctx),
+    getPluginConfig: () => loadPluginConfig(input.directory, process.env),
+  })
   const fills = createNativeFills(ctx, {
     createManagers: (args) => runtime.bindManagers(args.pluginConfig, createManagers(args)),
     createTools: async (args) => runtime.bindTools(await createTools(args)),
   })
-  const hooks: Hooks & { dispose?: () => Promise<void> } = await createPluginModule(fills.overrides, { delegationOwner: "host" }).server(input, {})
+  const hooks: Hooks & { dispose?: () => Promise<void> } = await createPluginModule(fills.overrides, {
+    delegationOwner: "host",
+  }).server(input, {})
   const handleMessage = hooks["chat.message"]
   hooks["chat.message"] = async (message, output) => {
     await updateConnectedProvidersCache(input.client)
@@ -51,15 +56,22 @@ export async function setupV2Bridge(ctx: Plugin.Context): Promise<Plugin.Cleanup
   let disposeHooks: (() => Promise<void>) | undefined
   let disposeNative: Plugin.Cleanup | undefined
   const dispose = async () => {
-    const results = await Promise.allSettled([runtime.cleanup(), disposeNative?.(), disposeHooks?.(), hooks.dispose?.()])
-    const errors = results.flatMap((result) => result.status === "rejected" ? [result.reason] : [])
+    const results = await Promise.allSettled([
+      runtime.cleanup(),
+      disposeNative?.(),
+      disposeHooks?.(),
+      hooks.dispose?.(),
+    ])
+    const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []))
     if (errors.length > 0) throw new AggregateError(errors, "V2 bridge cleanup failed")
   }
   try {
     const projected = await projectConfig(ctx)
     await hooks.config?.(projected)
     await registerV1Agents(ctx, projected.agent, projected.default_agent, { delegationOwner: "host" })
-    const tools = Object.fromEntries(Object.entries(hooks.tool ?? {}).filter(([name]) => projected.tools?.[name] !== false))
+    const tools = Object.fromEntries(
+      Object.entries(hooks.tool ?? {}).filter(([name]) => projected.tools?.[name] !== false),
+    )
     await registerV1Tools(ctx, tools)
     await runtime.install()
     await registerV1Mcps(ctx, projected.mcp)

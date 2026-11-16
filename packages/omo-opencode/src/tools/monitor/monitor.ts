@@ -45,7 +45,9 @@ export function createMonitorTool(manager: MonitorManager, pluginConfig: Monitor
         .int()
         .min(0)
         .optional()
-        .describe(`How long to watch before stopping the command (default ${DEFAULT_MONITOR_TIMEOUT_MS}, i.e. 5 minutes; capped by the configured maximum). 0 watches until the command exits.`),
+        .describe(
+          `How long to watch before stopping the command (default ${DEFAULT_MONITOR_TIMEOUT_MS}, i.e. 5 minutes; capped by the configured maximum). 0 watches until the command exits.`,
+        ),
     },
     async execute(args: { description: string; command: string; timeout_ms?: number }, toolContext) {
       const ctx = toolContext as MonitorToolContext

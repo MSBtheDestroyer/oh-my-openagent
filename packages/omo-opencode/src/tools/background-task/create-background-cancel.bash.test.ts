@@ -4,16 +4,28 @@ import type { BackgroundManager } from "../../features/background-agent"
 import { BashBackgroundManager, BASH_BACKGROUND_STARTED_EVENT } from "../../features/bash-background"
 import { createBackgroundCancel } from "./create-background-cancel"
 
-const backgroundManager = unsafeTestValue<BackgroundManager>({ getTask: () => undefined, getAllDescendantTasks: () => [] })
+const backgroundManager = unsafeTestValue<BackgroundManager>({
+  getTask: () => undefined,
+  getAllDescendantTasks: () => [],
+})
 const context = unsafeTestValue({ sessionID: "ses_parent" })
 
 async function withCommands(...commands: Array<{ id: string; sessionID: string }>) {
   const cancelJob = mock(async (_id: string) => true)
-  const bash = new BashBackgroundManager({ notify: async () => {}, cancelJob })
+  const bash = new BashBackgroundManager({ cancelJob })
   for (const { id, sessionID } of commands) {
     await bash.handleEvent({
       type: BASH_BACKGROUND_STARTED_EVENT,
-      properties: { sessionID, messageID: "msg_1", callID: "call_1", id, command: "npm run dev", outputPath: `/tmp/${id}`, reason: "requested", timeoutMs: null },
+      properties: {
+        sessionID,
+        messageID: "msg_1",
+        callID: "call_1",
+        id,
+        command: "npm run dev",
+        outputPath: `/tmp/${id}`,
+        reason: "requested",
+        timeoutMs: null,
+      },
     })
   }
   return { bash, cancelJob, cancel: createBackgroundCancel(backgroundManager, unsafeTestValue({}), undefined, bash) }
@@ -47,7 +59,10 @@ describe("background_cancel with a background bash command id", () => {
 
   test("#given all=true #when cancelling #then only this session's background commands are stopped", async () => {
     // given
-    const { cancel, cancelJob } = await withCommands({ id: "bash_3", sessionID: "ses_parent" }, { id: "bash_4", sessionID: "ses_other" })
+    const { cancel, cancelJob } = await withCommands(
+      { id: "bash_3", sessionID: "ses_parent" },
+      { id: "bash_4", sessionID: "ses_other" },
+    )
 
     // when
     const result = await cancel.execute({ all: true }, context)

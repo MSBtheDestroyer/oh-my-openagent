@@ -15,7 +15,11 @@ describe("partitionItems", () => {
   })
 
   test("#given an uneven split #when partitioning #then the first slices take the extra items", () => {
-    expect(partitionItems([1, 2, 3, 4, 5, 6, 7], 3)).toEqual([[1, 2, 3], [4, 5], [6, 7]])
+    expect(partitionItems([1, 2, 3, 4, 5, 6, 7], 3)).toEqual([
+      [1, 2, 3],
+      [4, 5],
+      [6, 7],
+    ])
   })
 
   test("#given no split #when partitioning #then there is one child per item", () => {
@@ -38,12 +42,34 @@ describe("executeFanOut", () => {
   })
 
   function createManager() {
-    const launched: Array<{ id: string; sessionId: string; description: string; prompt: string; agent: string; status: string; groupId?: string; parentSessionId: string; wake?: string }> = []
+    const launched: Array<{
+      id: string
+      sessionId: string
+      description: string
+      prompt: string
+      agent: string
+      status: string
+      groupId?: string
+      parentSessionId: string
+      wake?: string
+    }> = []
     const groups: Array<{ groupId: string; size: number }> = []
     const settled: Array<{ groupId: string; size: number }> = []
     const manager = {
-      launch: async (input: { description: string; prompt: string; agent: string; groupId?: string; parentSessionId: string; wake?: string }) => {
-        const task = { id: `bg_${launched.length + 1}`, sessionId: `ses_child_${launched.length + 1}`, status: "running", ...input }
+      launch: async (input: {
+        description: string
+        prompt: string
+        agent: string
+        groupId?: string
+        parentSessionId: string
+        wake?: string
+      }) => {
+        const task = {
+          id: `bg_${launched.length + 1}`,
+          sessionId: `ses_child_${launched.length + 1}`,
+          status: "running",
+          ...input,
+        }
         launched.push(task)
         return task
       },
@@ -55,10 +81,18 @@ describe("executeFanOut", () => {
     return { manager, launched, groups, settled }
   }
 
-  async function run(args: Partial<DelegateTaskArgs>, manager: ReturnType<typeof createManager>["manager"]): Promise<string> {
+  async function run(
+    args: Partial<DelegateTaskArgs>,
+    manager: ReturnType<typeof createManager>["manager"],
+  ): Promise<string> {
     return executeFanOut(
       { description: "audit", prompt: "Audit these files.", run_in_background: true, load_skills: [], ...args },
-      unsafeTestValue({ sessionID: "ses_parent", callID: "call_1", metadata: async () => {}, abort: new AbortController().signal }),
+      unsafeTestValue({
+        sessionID: "ses_parent",
+        callID: "call_1",
+        metadata: async () => {},
+        abort: new AbortController().signal,
+      }),
       unsafeTestValue<ExecutorContext>({ manager }),
       { sessionID: "ses_parent", messageID: "msg_1" },
       "explore",

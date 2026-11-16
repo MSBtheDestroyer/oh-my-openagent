@@ -1,11 +1,11 @@
-import {
-  createInternalAgentTextPart,
-  isAmbiguousPostDispatchPromptFailure,
-  log,
-} from "../../shared"
+import { createInternalAgentTextPart, isAmbiguousPostDispatchPromptFailure, log } from "../../shared"
 import { isSessionActive as isOpenCodeSessionActive, settleAfterSessionIdle } from "../../shared/session-idle-settle"
 import { dispatchInternalPrompt, isInternalPromptDispatchAccepted } from "../../shared/prompt-async-gate"
-import type { InternalPromptDispatchArgs, InternalPromptDispatchResult, PromptAsyncInput } from "@oh-my-opencode/utils/prompt-async-gate/types"
+import type {
+  InternalPromptDispatchArgs,
+  InternalPromptDispatchResult,
+  PromptAsyncInput,
+} from "@oh-my-opencode/utils/prompt-async-gate/types"
 import { formatMonitorBatch } from "./envelope"
 import { resolveMonitorParentPromptContext } from "./parent-prompt-context"
 import {
@@ -52,7 +52,7 @@ export class MonitorOutputInjector {
   }
 
   getPendingBatches(monitorId: string): OutputBatch[] {
-    return [...this.pendingOutputs.get(monitorId)?.batches ?? []]
+    return [...(this.pendingOutputs.get(monitorId)?.batches ?? [])]
   }
 
   async flushMonitor(monitorId: string): Promise<void> {
@@ -91,13 +91,27 @@ export class MonitorOutputInjector {
 
     // A batch past the busy-parent delay goes into the running turn, which reads it at its next tool step, so the turn
     // being mid-tool does not hold it back.
-    if (!hasForcedTerminalBatch && await latestAssistantTurnBlocksMonitorOutput(this.deps.client, this.deps.directory, sessionID)) {
+    if (
+      !hasForcedTerminalBatch &&
+      (await latestAssistantTurnBlocksMonitorOutput(this.deps.client, this.deps.directory, sessionID))
+    ) {
       this.scheduleFlush(monitorId)
-      log("[monitor] Deferred output injection because latest assistant turn blocks internal prompts:", { sessionID, monitorId })
+      log("[monitor] Deferred output injection because latest assistant turn blocks internal prompts:", {
+        sessionID,
+        monitorId,
+      })
       return
     }
 
-    if (await isUserMessageInProgress(this.deps.client, this.deps.directory, sessionID, this.now(), this.deps.userMessageInProgressWindowMs)) {
+    if (
+      await isUserMessageInProgress(
+        this.deps.client,
+        this.deps.directory,
+        sessionID,
+        this.now(),
+        this.deps.userMessageInProgressWindowMs,
+      )
+    ) {
       this.scheduleFlush(monitorId)
       log("[monitor] Deferred output injection because user message just arrived:", { sessionID, monitorId })
       return
@@ -180,13 +194,19 @@ export class MonitorOutputInjector {
 
       if (promptResult.status === "failed") {
         if (
-          isAmbiguousPostDispatchPromptFailure(promptResult)
-          && await hasAcceptedMessageAfterDispatchedMonitorOutput(this.deps.client, this.deps.directory, sessionID, {
-            record,
-            batch,
-            content,
-            dispatchedAt: dispatchStartedAt,
-          }, this.deps.acceptedMessageSkewMs)
+          isAmbiguousPostDispatchPromptFailure(promptResult) &&
+          (await hasAcceptedMessageAfterDispatchedMonitorOutput(
+            this.deps.client,
+            this.deps.directory,
+            sessionID,
+            {
+              record,
+              batch,
+              content,
+              dispatchedAt: dispatchStartedAt,
+            },
+            this.deps.acceptedMessageSkewMs,
+          ))
         ) {
           this.trackDelivered(source, { record, batch, content, dispatchedAt: dispatchStartedAt })
           log("[monitor] Treated failed monitor output prompt as accepted after observing session history:", {
@@ -234,7 +254,12 @@ export class MonitorOutputInjector {
       return true
     } catch (error) {
       this.scheduleFlush(record.id)
-      log("[monitor] Failed to send deferred monitor output:", { sessionID, monitorId: record.id, batchSeq: batch.batchSeq, error })
+      log("[monitor] Failed to send deferred monitor output:", {
+        sessionID,
+        monitorId: record.id,
+        batchSeq: batch.batchSeq,
+        error,
+      })
       return false
     }
   }
@@ -294,7 +319,9 @@ export class MonitorOutputInjector {
     await settleAfterSessionIdle()
   }
 
-  private dispatchInternalPrompt(args: InternalPromptDispatchArgs<PromptAsyncInput>): Promise<InternalPromptDispatchResult> {
+  private dispatchInternalPrompt(
+    args: InternalPromptDispatchArgs<PromptAsyncInput>,
+  ): Promise<InternalPromptDispatchResult> {
     return (this.deps.dispatchInternalPrompt ?? dispatchInternalPrompt)(args)
   }
 

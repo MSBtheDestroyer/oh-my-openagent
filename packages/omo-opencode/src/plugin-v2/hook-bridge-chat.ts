@@ -5,14 +5,27 @@ import { UnsupportedHookMappingError, type HookOutput } from "./hook-bridge-type
 
 type PromptEvent = { readonly sessionID: string; readonly messageID: string; prompt: SessionPrompt["prompt"] }
 
-export function buildChatMessageView(event: PromptEvent, identity: Omit<Parameters<typeof userMessageInfo>[0], "sessionID">) {
+export function buildChatMessageView(
+  event: PromptEvent,
+  identity: Omit<Parameters<typeof userMessageInfo>[0], "sessionID">,
+) {
   const output: HookOutput<"chat.message"> = {
     message: userMessageInfo({ ...identity, sessionID: event.sessionID }, event.messageID),
-    parts: [{ id: `${event.messageID}:text`, sessionID: event.sessionID, messageID: event.messageID, type: "text", text: event.prompt.text }],
+    parts: [
+      {
+        id: `${event.messageID}:text`,
+        sessionID: event.sessionID,
+        messageID: event.messageID,
+        type: "text",
+        text: event.prompt.text,
+      },
+    ],
   }
   const input: Parameters<NonNullable<Hooks["chat.message"]>>[0] = {
-    sessionID: event.sessionID, messageID: event.messageID,
-    agent: identity.agent, model: { providerID: identity.model.providerID, modelID: identity.model.id },
+    sessionID: event.sessionID,
+    messageID: event.messageID,
+    agent: identity.agent,
+    model: { providerID: identity.model.providerID, modelID: identity.model.id },
     variant: identity.model.variant,
   }
   return { input, output }

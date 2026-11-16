@@ -13,13 +13,19 @@ import { createNativeRawLauncherProbe } from "./v2-delegation/native-raw-launche
 import { providerIsolationProbes } from "./v2-parity/provider-isolation"
 import { loadHarness, createScenarioHost } from "./v2-parity/harness"
 
-const [root, binary, pluginBundle, toolsDirectory] = z.tuple([z.string(), z.string(), z.string(), z.string()]).parse(process.argv.slice(2, 6)).map((path) => resolve(path))
+const [root, binary, pluginBundle, toolsDirectory] = z
+  .tuple([z.string(), z.string(), z.string(), z.string()])
+  .parse(process.argv.slice(2, 6))
+  .map((path) => resolve(path))
 const mode = z.enum(["bridge", "native"]).parse(process.argv[6] ?? "bridge")
-if (!root || !binary || !pluginBundle || !toolsDirectory) throw new TypeError("Expected root, binary, plugin bundle and tools directory")
+if (!root || !binary || !pluginBundle || !toolsDirectory)
+  throw new TypeError("Expected root, binary, plugin bundle and tools directory")
 mkdirSync(root, { recursive: true })
 const harness = await loadHarness(toolsDirectory)
 const versionSandbox = harness.createSandbox({ root }, "version")
-const identification = await harness.execute({ binary, signal: AbortSignal.timeout(30000) }, versionSandbox, { args: ["--version"] })
+const identification = await harness.execute({ binary, signal: AbortSignal.timeout(30000) }, versionSandbox, {
+  args: ["--version"],
+})
 if (identification.code !== 0) throw new TypeError("Cannot identify the requested v2 binary")
 const version = identification.stdout.trim()
 const controller = new AbortController()
@@ -28,11 +34,37 @@ process.once("SIGINT", abort)
 process.once("SIGTERM", abort)
 const timer = setTimeout(abort, mode === "native" ? 600000 : 240000)
 try {
-  const context: ParityContext = { binary, root, version, signal: controller.signal, toolsDirectory, pluginBundle, sourceDirectory: process.cwd(), harness }
-  const probes = [...providerIsolationProbes, ...createDelegationProbes(createScenarioHost, mode), ...createDelegationPermissionProbes(createScenarioHost, mode), createSelectionProbe(createScenarioHost), ...(mode === "native" ? [...createAllowedLauncherProbes(createScenarioHost), createNativePermissionAskProbe(createScenarioHost), createNativeRawLauncherProbe(createScenarioHost), ...createNativeLifecycleProbes(createScenarioHost), ...createNativeJobProbes(createScenarioHost)] : [])]
+  const context: ParityContext = {
+    binary,
+    root,
+    version,
+    signal: controller.signal,
+    toolsDirectory,
+    pluginBundle,
+    sourceDirectory: process.cwd(),
+    harness,
+  }
+  const probes = [
+    ...providerIsolationProbes,
+    ...createDelegationProbes(createScenarioHost, mode),
+    ...createDelegationPermissionProbes(createScenarioHost, mode),
+    createSelectionProbe(createScenarioHost),
+    ...(mode === "native"
+      ? [
+          ...createAllowedLauncherProbes(createScenarioHost),
+          createNativePermissionAskProbe(createScenarioHost),
+          createNativeRawLauncherProbe(createScenarioHost),
+          ...createNativeLifecycleProbes(createScenarioHost),
+          ...createNativeJobProbes(createScenarioHost),
+        ]
+      : []),
+  ]
   const selected = process.argv[7] ? probes.filter((probe) => probe.id === process.argv[7]) : probes
   if (selected.length === 0) throw new TypeError(`Unknown ${mode} delegation probe: ${process.argv[7]}`)
-  const results = await harness.runChecks(context, selected.map((probe) => ({ ...probe, run: () => probe.run(context) })))
+  const results = await harness.runChecks(
+    context,
+    selected.map((probe) => ({ ...probe, run: () => probe.run(context) })),
+  )
   const report = { binary, root, version, results, ok: results.every((result) => result.status === "pass") }
   writeFileSync(join(root, "report.json"), JSON.stringify(report, null, 2))
   console.log(JSON.stringify(report, null, 2))

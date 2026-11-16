@@ -27,12 +27,17 @@ export function evaluateMatrix(rows: readonly MatrixRow[], results: readonly Pro
         const missing = row.probes.filter((id) => !byId.has(id))
         const failed = checks.filter((check) => check?.status === "fail")
         const skipped = checks.filter((check) => check?.status === "skip")
-        const detail = [...checks.flatMap((check) => check === undefined ? [] : [`${check.id}: ${check.status}: ${check.detail}`]),
-          ...(row.note === undefined ? [] : [row.note])].join("; ")
-        return { id: row.id, label: row.label,
+        const detail = [
+          ...checks.flatMap((check) => (check === undefined ? [] : [`${check.id}: ${check.status}: ${check.detail}`])),
+          ...(row.note === undefined ? [] : [row.note]),
+        ].join("; ")
+        return {
+          id: row.id,
+          label: row.label,
           status: missing.length > 0 || failed.length > 0 ? "fail" : skipped.length > 0 ? "skip" : "pass",
           detail: missing.length > 0 ? `Missing runtime results: ${missing.join(", ")}; ${detail}` : detail,
-          probes: row.probes }
+          probes: row.probes,
+        }
       }
       default:
         throw new TypeError(`Unknown matrix row: ${row satisfies never}`)
@@ -41,7 +46,10 @@ export function evaluateMatrix(rows: readonly MatrixRow[], results: readonly Pro
 }
 
 export function paritySucceeded(results: readonly ProbeResult[], matrix: readonly MatrixResult[]): boolean {
-  return results.length > 0 && matrix.length > 0
-    && results.every((result) => result.status !== "fail")
-    && matrix.every((result) => result.status !== "fail")
+  return (
+    results.length > 0 &&
+    matrix.length > 0 &&
+    results.every((result) => result.status !== "fail") &&
+    matrix.every((result) => result.status !== "fail")
+  )
 }

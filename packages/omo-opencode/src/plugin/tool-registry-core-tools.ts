@@ -20,35 +20,49 @@ import { createRuntimeSkillsResolver, readRuntimeHostSkills } from "./runtime-sk
 export function createCoreTools(args: {
   readonly ctx: PluginContext
   readonly pluginConfig: OhMyOpenCodeConfig
-  readonly managers: Pick<Managers, "backgroundManager" | "tmuxSessionManager" | "skillMcpManager" | "modelFallbackControllerAccessor" | "monitorManager" | "bashBackgroundManager">
+  readonly managers: Pick<
+    Managers,
+    | "backgroundManager"
+    | "tmuxSessionManager"
+    | "skillMcpManager"
+    | "modelFallbackControllerAccessor"
+    | "monitorManager"
+    | "bashBackgroundManager"
+  >
   readonly skillContext: SkillContext
   readonly availableCategories: AvailableCategory[]
   readonly factories: ToolRegistryFactories
 }): Record<string, ToolDefinition> {
   const { ctx, pluginConfig, managers, skillContext, availableCategories, factories } = args
-  const backgroundTools = managers.backgroundManager ? factories.createBackgroundTools(
-    managers.backgroundManager,
-    ctx.client,
-    managers.monitorManager,
-    managers.bashBackgroundManager,
-  ) : {}
-  const callOmoAgent = managers.backgroundManager ? factories.createCallOmoAgent(
-    ctx,
-    managers.backgroundManager,
-    pluginConfig.disabled_agents ?? [],
-    pluginConfig.agents,
-    pluginConfig.categories,
-    managers.modelFallbackControllerAccessor,
-    pluginConfig.background_task?.syncPollTimeoutMs,
-    pluginConfig.background_task?.foregroundHandoffMs,
-  ) : undefined
+  const backgroundTools = managers.backgroundManager
+    ? factories.createBackgroundTools(
+        managers.backgroundManager,
+        ctx.client,
+        managers.monitorManager,
+        managers.bashBackgroundManager,
+      )
+    : {}
+  const callOmoAgent = managers.backgroundManager
+    ? factories.createCallOmoAgent(
+        ctx,
+        managers.backgroundManager,
+        pluginConfig.disabled_agents ?? [],
+        pluginConfig.agents,
+        pluginConfig.categories,
+        managers.modelFallbackControllerAccessor,
+        pluginConfig.background_task?.syncPollTimeoutMs,
+        pluginConfig.background_task?.foregroundHandoffMs,
+      )
+    : undefined
   const isMultimodalLookerEnabled = !(pluginConfig.disabled_agents ?? []).some(
     (agent) => agent.toLowerCase() === "multimodal-looker",
   )
-  const nativeSkills = getPluginInputNativeSkills(ctx) ?? createNativeSkills({
-    client: ctx.client,
-    directory: ctx.directory,
-  })
+  const nativeSkills =
+    getPluginInputNativeSkills(ctx) ??
+    createNativeSkills({
+      client: ctx.client,
+      directory: ctx.directory,
+    })
   const getSessionIDForMcp = (): string | undefined => getMainSessionID()
   const getLoadedSkills = createRuntimeSkillsResolver({
     baseSkills: skillContext.mergedSkills,
@@ -56,62 +70,64 @@ export function createCoreTools(args: {
     buildMergedSkills: async (hostSkills) =>
       (await createSkillContext({ directory: ctx.directory, pluginConfig, hostSkills })).mergedSkills,
   })
-  const delegateTask = managers.backgroundManager ? factories.createDelegateTask({
-    manager: managers.backgroundManager,
-    client: ctx.client,
-    directory: ctx.directory,
-    userCategories: pluginConfig.categories,
-    agentOverrides: pluginConfig.agents,
-    loadCurrentModelConfig: () => {
-      const current = loadPluginConfig(ctx.directory, process.env)
-      return { agents: current.agents, categories: current.categories }
-    },
-    gitMasterConfig: pluginConfig.git_master,
-    sisyphusJuniorModel: getSisyphusJuniorModelOverride(pluginConfig.agents?.["sisyphus-junior"]),
-    browserProvider: skillContext.browserProvider,
-    disabledSkills: skillContext.disabledSkills,
-    teamModeEnabled: pluginConfig.team_mode?.enabled ?? false,
-    availableCategories,
-    availableSkills: skillContext.availableSkills,
-    nativeSkills,
-    getLoadedSkills,
-    sisyphusAgentConfig: pluginConfig.sisyphus_agent,
-    claudeCodeAgentsEnabled: pluginConfig.claude_code?.agents ?? true,
-    syncPollTimeoutMs: pluginConfig.background_task?.syncPollTimeoutMs,
-    syncMaxAssistantTurns: pluginConfig.background_task?.syncMaxAssistantTurns,
-    foregroundHandoffMs: pluginConfig.background_task?.foregroundHandoffMs,
-    taskCleanupDelayMs: pluginConfig.background_task?.taskCleanupDelayMs,
-    modelFallbackControllerAccessor: managers.modelFallbackControllerAccessor,
-    onSyncSessionCreated: async (event) => {
-      log("[index] onSyncSessionCreated callback", {
-        sessionID: event.sessionID,
-        parentID: event.parentID,
-        title: event.title,
-      })
-      await managers.tmuxSessionManager.onSessionCreated({
-        type: "session.created",
-        properties: {
-          info: {
-            id: event.sessionID,
+  const delegateTask = managers.backgroundManager
+    ? factories.createDelegateTask({
+        manager: managers.backgroundManager,
+        client: ctx.client,
+        directory: ctx.directory,
+        userCategories: pluginConfig.categories,
+        agentOverrides: pluginConfig.agents,
+        loadCurrentModelConfig: () => {
+          const current = loadPluginConfig(ctx.directory, process.env)
+          return { agents: current.agents, categories: current.categories }
+        },
+        gitMasterConfig: pluginConfig.git_master,
+        sisyphusJuniorModel: getSisyphusJuniorModelOverride(pluginConfig.agents?.["sisyphus-junior"]),
+        browserProvider: skillContext.browserProvider,
+        disabledSkills: skillContext.disabledSkills,
+        teamModeEnabled: pluginConfig.team_mode?.enabled ?? false,
+        availableCategories,
+        availableSkills: skillContext.availableSkills,
+        nativeSkills,
+        getLoadedSkills,
+        sisyphusAgentConfig: pluginConfig.sisyphus_agent,
+        claudeCodeAgentsEnabled: pluginConfig.claude_code?.agents ?? true,
+        syncPollTimeoutMs: pluginConfig.background_task?.syncPollTimeoutMs,
+        syncMaxAssistantTurns: pluginConfig.background_task?.syncMaxAssistantTurns,
+        foregroundHandoffMs: pluginConfig.background_task?.foregroundHandoffMs,
+        taskCleanupDelayMs: pluginConfig.background_task?.taskCleanupDelayMs,
+        modelFallbackControllerAccessor: managers.modelFallbackControllerAccessor,
+        onSyncSessionCreated: async (event) => {
+          log("[index] onSyncSessionCreated callback", {
+            sessionID: event.sessionID,
             parentID: event.parentID,
             title: event.title,
-          },
+          })
+          await managers.tmuxSessionManager.onSessionCreated({
+            type: "session.created",
+            properties: {
+              info: {
+                id: event.sessionID,
+                parentID: event.parentID,
+                title: event.title,
+              },
+            },
+          })
+
+          if (pluginConfig.openclaw) {
+            await openclawRuntimeDispatch.dispatchOpenClawEvent({
+              config: pluginConfig.openclaw,
+              rawEvent: "session.created",
+              context: {
+                sessionId: event.sessionID,
+                projectPath: ctx.directory,
+                tmuxPaneId: managers.tmuxSessionManager.getTrackedPaneId?.(event.sessionID) ?? process.env.TMUX_PANE,
+              },
+            })
+          }
         },
       })
-
-      if (pluginConfig.openclaw) {
-        await openclawRuntimeDispatch.dispatchOpenClawEvent({
-          config: pluginConfig.openclaw,
-          rawEvent: "session.created",
-          context: {
-            sessionId: event.sessionID,
-            projectPath: ctx.directory,
-            tmuxPaneId: managers.tmuxSessionManager.getTrackedPaneId?.(event.sessionID) ?? process.env.TMUX_PANE,
-          },
-        })
-      }
-    },
-  }) : undefined
+    : undefined
 
   const skillMcpTool = factories.createSkillMcpTool({
     manager: managers.skillMcpManager,
@@ -155,10 +171,13 @@ export function createCoreTools(args: {
 
   if (pluginConfig.goal?.enabled) {
     const goalController: GoalController = createGoalController({ projectDir: ctx.directory })
-    Object.assign(tools, createGoalTools({
-      controller: goalController,
-      getSessionID: getMainSessionID,
-    }))
+    Object.assign(
+      tools,
+      createGoalTools({
+        controller: goalController,
+        getSessionID: getMainSessionID,
+      }),
+    )
   }
 
   return tools

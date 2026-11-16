@@ -52,7 +52,11 @@ describe("formatMonitorBatch", () => {
   })
 
   it("#given the command exited #then the notice says so with its exit code", () => {
-    const text = formatMonitorBatch({ ...baseRecord, status: "exited", exitCode: 3 }, batch({ stillRunning: false, lines: [] }), counters)
+    const text = formatMonitorBatch(
+      { ...baseRecord, status: "exited", exitCode: 3 },
+      batch({ stillRunning: false, lines: [] }),
+      counters,
+    )
 
     expect(text.split("\n")[1]).toBe("[MONITOR ENDED]")
     expect(tag(text, "status")).toBe("completed")

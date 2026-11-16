@@ -20,8 +20,14 @@ export async function readToolSubmissions(file: string, signal: AbortSignal): Pr
         try {
           const log = readFileSync(file, "utf8")
           const records = [...log.matchAll(/tool definitions submitted (\{[^\n]+\})/g)]
-          if (records.length > 0) resolve([...new Set(records.flatMap((match) =>
-            z.object({ names: z.array(z.string()) }).parse(JSON.parse(match[1] ?? "")).names))])
+          if (records.length > 0)
+            resolve([
+              ...new Set(
+                records.flatMap(
+                  (match) => z.object({ names: z.array(z.string()) }).parse(JSON.parse(match[1] ?? "")).names,
+                ),
+              ),
+            ])
         } catch (error) {
           if (error instanceof Error && "code" in error && error.code === "ENOENT") return
           reject(error)

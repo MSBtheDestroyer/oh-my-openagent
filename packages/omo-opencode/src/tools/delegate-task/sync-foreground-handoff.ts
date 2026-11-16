@@ -64,10 +64,10 @@ Its result arrives as a background task notification${task.wake === "none" ? " o
 - Give it more instructions once it has finished: \`task(task_id="${input.sessionID}", prompt="...")\`
 
 ${buildTaskMetadataBlock({
-    sessionId: input.sessionID,
-    taskId: input.sessionID,
-    backgroundTaskId: task.id,
-    agent: input.agentToUse,
-    category: input.args.category,
-  })}`
+  sessionId: input.sessionID,
+  taskId: input.sessionID,
+  backgroundTaskId: task.id,
+  agent: input.agentToUse,
+  category: input.args.category,
+})}`
 }

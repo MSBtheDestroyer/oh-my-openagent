@@ -16,8 +16,10 @@ describe("resolveMirrorTiming", () => {
   })
 
   it("#given valid overrides #when resolving #then it uses them", () => {
-    expect(resolveMirrorTiming({ [HEARTBEAT_ENV]: "1000", [IDLE_RECHECK_ENV]: "30000" }))
-      .toEqual({ heartbeatMs: 1_000, idleRecheckMs: 30_000 })
+    expect(resolveMirrorTiming({ [HEARTBEAT_ENV]: "1000", [IDLE_RECHECK_ENV]: "30000" })).toEqual({
+      heartbeatMs: 1_000,
+      idleRecheckMs: 30_000,
+    })
   })
 
   it("#given a heartbeat slower than the keepalive age #when resolving #then it is capped so live snapshots never go stale", () => {

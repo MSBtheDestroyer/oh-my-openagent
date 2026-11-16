@@ -32,36 +32,96 @@ function context(): Plugin.Context {
     provider: { ...ctx.provider, get: unused, transform: registered, reload: unused },
     session: {
       ...ctx.session,
-      generate: unused, command: unused, compact: unused, synthetic: unused,
-      update: unused, move: unused, hook: registered,
-      get instructions() { return unused() },
+      generate: unused,
+      command: unused,
+      compact: unused,
+      synthetic: unused,
+      update: unused,
+      move: unused,
+      hook: registered,
+      get instructions() {
+        return unused()
+      },
     },
     tool: {
       transform: async (callback) => {
-        const native = { id: "subagent", name: "subagent", description: "Fixture native tool", input: { type: "object" }, execute: unused }
-        callback({ add: () => {}, get: () => native, list: () => [native], namespace: unused, update: unused, remove: () => {} })
+        const native = {
+          id: "subagent",
+          name: "subagent",
+          description: "Fixture native tool",
+          input: { type: "object" },
+          execute: unused,
+        }
+        callback({
+          add: () => {},
+          get: () => native,
+          list: () => [native],
+          namespace: unused,
+          update: unused,
+          remove: () => {},
+        })
         return registered()
-      }, list: unused, reload: unused,
-      hook: async () => ({ dispose: async () => { if (hookFailure) throw hookFailure } }),
+      },
+      list: unused,
+      reload: unused,
+      hook: async () => ({
+        dispose: async () => {
+          if (hookFailure) throw hookFailure
+        },
+      }),
     },
     mcp: { transform: registered, list: unused, reload: unused },
-    get aisdk() { return unused() },
-    get command() { return unused() },
-    get credential() { return unused() },
-    get event() { return unused() },
-    get experimental() { return unused() },
-    get generate() { return unused() },
-    get integration() { return unused() },
-    get permission() { return unused() },
-    get plugin() { return unused() },
-    get reference() { return unused() },
-    get rpc() { return unused() },
-    get shell() { return unused() },
-    get skill() { return unused() },
-    get storage() { return unused() },
-    get vcs() { return unused() },
-    get websearch() { return unused() },
-    get worktree() { return unused() },
+    get aisdk() {
+      return unused()
+    },
+    get command() {
+      return unused()
+    },
+    get credential() {
+      return unused()
+    },
+    get event() {
+      return unused()
+    },
+    get experimental() {
+      return unused()
+    },
+    get generate() {
+      return unused()
+    },
+    get integration() {
+      return unused()
+    },
+    get permission() {
+      return unused()
+    },
+    get plugin() {
+      return unused()
+    },
+    get reference() {
+      return unused()
+    },
+    get rpc() {
+      return unused()
+    },
+    get shell() {
+      return unused()
+    },
+    get skill() {
+      return unused()
+    },
+    get storage() {
+      return unused()
+    },
+    get vcs() {
+      return unused()
+    },
+    get websearch() {
+      return unused()
+    },
+    get worktree() {
+      return unused()
+    },
   }
 }
 
@@ -72,25 +132,57 @@ beforeEach(() => {
   runtimeDisposals = 0
   runtimeFailure = undefined
   hookFailure = undefined
-  hooks = { dispose: async () => { runtimeDisposals += 1; if (runtimeFailure) throw runtimeFailure } }
+  hooks = {
+    dispose: async () => {
+      runtimeDisposals += 1
+      if (runtimeFailure) throw runtimeFailure
+    },
+  }
   mock.module("../testing/create-plugin-module", () => ({ createPluginModule: () => ({ server: async () => hooks }) }))
 })
-afterEach(() => { mock.restore(); _resetMemCacheForTesting(); rmSync(cacheDirectory, { recursive: true }) })
+afterEach(() => {
+  mock.restore()
+  _resetMemCacheForTesting()
+  rmSync(cacheDirectory, { recursive: true })
+})
 
 describe("V2 bridge runtime lifecycle", () => {
   test("refreshes activated native model presets before OMO handles a prompt", async () => {
     // given
     const ctx = context()
-    const model = { ...Model.Info.default(Provider.ID.make("boot-provider"), Model.ID.make("boot-child")), variants: [{ id: Model.VariantID.make("high"), body: { reasoning_effort: "high" } }] }
+    const model = {
+      ...Model.Info.default(Provider.ID.make("boot-provider"), Model.ID.make("boot-child")),
+      variants: [{ id: Model.VariantID.make("high"), body: { reasoning_effort: "high" } }],
+    }
     let activated = false
     ctx.model.list = async () => ({ location: ctx.location, data: activated ? [model] : [] })
-    ctx.provider.list = async () => ({ location: ctx.location, data: activated ? [{ id: model.providerID, name: "Boot provider", activation: "enabled", package: "fixture" }] : [] })
+    ctx.provider.list = async () => ({
+      location: ctx.location,
+      data: activated
+        ? [{ id: model.providerID, name: "Boot provider", activation: "enabled", package: "fixture" }]
+        : [],
+    })
     let selected: ReturnType<typeof lowerReasoningForModel> | undefined
-    hooks["chat.message"] = async () => { selected = lowerReasoningForModel("high", { providerID: model.providerID, modelID: model.id }) }
+    hooks["chat.message"] = async () => {
+      selected = lowerReasoningForModel("high", { providerID: model.providerID, modelID: model.id })
+    }
     // when
     const dispose = await setupV2Bridge(ctx)
     activated = true
-    await hooks["chat.message"]({ sessionID: "session-1" }, { message: { id: "msg_prompt", sessionID: "session-1", role: "user", time: { created: 1 }, agent: "sisyphus", model: { providerID: model.providerID, modelID: model.id } }, parts: [] })
+    await hooks["chat.message"](
+      { sessionID: "session-1" },
+      {
+        message: {
+          id: "msg_prompt",
+          sessionID: "session-1",
+          role: "user",
+          time: { created: 1 },
+          agent: "sisyphus",
+          model: { providerID: model.providerID, modelID: model.id },
+        },
+        parts: [],
+      },
+    )
     await dispose()
     // then
     expect(selected).toEqual({ variant: "high" })
@@ -99,7 +191,9 @@ describe("V2 bridge runtime lifecycle", () => {
   test("disposes the constructed runtime when configuration fails", async () => {
     // given
     const failure = new Error("configuration failed")
-    hooks.config = async () => { throw failure }
+    hooks.config = async () => {
+      throw failure
+    }
     // when
     const result = setupV2Bridge(context())
     // then
@@ -123,7 +217,9 @@ describe("V2 bridge runtime lifecycle", () => {
     // given
     const failure = new Error("configuration failed")
     runtimeFailure = new Error("runtime cleanup failed")
-    hooks.config = async () => { throw failure }
+    hooks.config = async () => {
+      throw failure
+    }
     // when
     const result = setupV2Bridge(context())
     // then

@@ -38,24 +38,30 @@ async function getLastAgentFromSessionMessages(
     let before: string | undefined
     while (true) {
       const response = await client.session.messages({ path: { id: sessionID }, query: { limit, before } })
-      const messages = deps.normalizeSDKResponse(response, [] as Array<{
-        id?: string
-        agent?: string
-        info?: { id?: string; agent?: string; time?: { created?: number } }
-        parts?: Array<{ type?: string }>
-      }>, {
-        preferResponseOnMissingData: true,
-      }).sort((left, right) => {
-        const leftTime = left.info?.time?.created ?? Number.NEGATIVE_INFINITY
-        const rightTime = right.info?.time?.created ?? Number.NEGATIVE_INFINITY
-        if (leftTime !== rightTime) {
-          return rightTime - leftTime
-        }
+      const messages = deps
+        .normalizeSDKResponse(
+          response,
+          [] as Array<{
+            id?: string
+            agent?: string
+            info?: { id?: string; agent?: string; time?: { created?: number } }
+            parts?: Array<{ type?: string }>
+          }>,
+          {
+            preferResponseOnMissingData: true,
+          },
+        )
+        .sort((left, right) => {
+          const leftTime = left.info?.time?.created ?? Number.NEGATIVE_INFINITY
+          const rightTime = right.info?.time?.created ?? Number.NEGATIVE_INFINITY
+          if (leftTime !== rightTime) {
+            return rightTime - leftTime
+          }
 
-        const leftId = left.info?.id ?? left.id ?? ""
-        const rightId = right.info?.id ?? right.id ?? ""
-        return leftId < rightId ? 1 : leftId > rightId ? -1 : 0
-      })
+          const leftId = left.info?.id ?? left.id ?? ""
+          const rightId = right.info?.id ?? right.id ?? ""
+          return leftId < rightId ? 1 : leftId > rightId ? -1 : 0
+        })
 
       for (const message of messages) {
         if (deps.isCompactionMessage(message)) {
@@ -121,12 +127,22 @@ export async function getLastAgentFromSession(
           return null
         }
       })
-      .filter((message): message is { fileName: string; id: string | undefined; agent: unknown; createdAt: number } => message !== null)
-      .sort((left, right) => (right?.createdAt ?? 0) - (left?.createdAt ?? 0) || (right?.fileName ?? "").localeCompare(left?.fileName ?? ""))
+      .filter(
+        (message): message is { fileName: string; id: string | undefined; agent: unknown; createdAt: number } =>
+          message !== null,
+      )
+      .sort(
+        (left, right) =>
+          (right?.createdAt ?? 0) - (left?.createdAt ?? 0) ||
+          (right?.fileName ?? "").localeCompare(left?.fileName ?? ""),
+      )
 
     for (const message of messages) {
       if (!message) continue
-      if (resolvedDeps.isCompactionMessage({ agent: message.agent }) || resolvedDeps.hasCompactionPartInStorage(message?.id)) {
+      if (
+        resolvedDeps.isCompactionMessage({ agent: message.agent }) ||
+        resolvedDeps.hasCompactionPartInStorage(message?.id)
+      ) {
         continue
       }
 

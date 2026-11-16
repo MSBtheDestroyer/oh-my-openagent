@@ -28,5 +28,7 @@ test("retains closed native data without copying regenerable caches or changing 
     expect(existsSync(join(artifacts, "native-scratch/tmp/.bun-fixture.so"))).toBe(false)
     expect(readFileSync(join(artifacts, "native-scratch/tmp/oh-my-opencode.log"), "utf8")).toBe(marker)
     expect(readFileSync(join(scratchRoot, "opencode-v2.db"), "utf8")).toBe(marker)
-  } finally { rmSync(scratchRoot, { recursive: true, force: true }) }
+  } finally {
+    rmSync(scratchRoot, { recursive: true, force: true })
+  }
 })

@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, statSync } from "node:fs"
+import { type fsyncSync as FsyncSync, mkdirSync, readFileSync, statSync } from "node:fs"
 import { dirname } from "node:path"
 
 import { writeFileAtomically } from "../../shared/write-file-atomically"
@@ -7,12 +7,17 @@ import { canonicalProjectDir, mirrorFilePath } from "./mirror-path"
 import { parseSnapshot } from "./snapshot-schema"
 import type { TuiRuntimeSnapshot } from "./snapshot-schema"
 
-export function writeMirror(projectDir: string, snapshot: TuiRuntimeSnapshot): void {
+export function writeMirror(
+  projectDir: string,
+  snapshot: TuiRuntimeSnapshot,
+  deps: { fsyncSync?: typeof FsyncSync } = {},
+): void {
   const filePath = mirrorFilePath(projectDir)
   const content = JSON.stringify(snapshot)
 
   mkdirSync(dirname(filePath), { recursive: true })
-  writeFileAtomically(filePath, content, { mode: 0o600 })
+  // Rewritten every few seconds and rebuilt from live state, so a crash costs nothing worth an fsync.
+  writeFileAtomically(filePath, content, { ...deps, mode: 0o600, durable: false })
 }
 
 export function readMirror(projectDir: string): TuiRuntimeSnapshot | null {

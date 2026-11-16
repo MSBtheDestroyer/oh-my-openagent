@@ -26,7 +26,12 @@ const task: RunningJob = {
   agent: "Sisyphus-Junior",
 }
 
-function ledger(root: string, jobs: { current: RunningJob[] }, lost: Array<[string, RunningJob[]]>, alive = new Set<number>()) {
+function ledger(
+  root: string,
+  jobs: { current: RunningJob[] },
+  lost: Array<[string, RunningJob[]]>,
+  alive = new Set<number>(),
+) {
   return new RunningJobsLedger({
     root,
     pid: 100,
@@ -49,7 +54,12 @@ describe("RunningJobsLedger", () => {
 
     // then
     const record = JSON.parse(readFileSync(subject.path("ses_parent"), "utf8"))
-    expect(record).toMatchObject({ version: 1, sessionId: "ses_parent", owner: { pid: 100, hostname: "host" }, jobs: [task] })
+    expect(record).toMatchObject({
+      version: 1,
+      sessionId: "ses_parent",
+      owner: { pid: 100, hostname: "host" },
+      jobs: [task],
+    })
 
     // when
     jobs.current = []
@@ -78,7 +88,14 @@ describe("RunningJobsLedger", () => {
     const earlier = ledger(root, { current: [task] }, [])
     earlier.flush()
     const lost: Array<[string, RunningJob[]]> = []
-    const next = new RunningJobsLedger({ root, pid: 200, hostname: "host", isAlive: () => false, sources: [], onLost: (s, j) => lost.push([s, j]) })
+    const next = new RunningJobsLedger({
+      root,
+      pid: 200,
+      hostname: "host",
+      isAlive: () => false,
+      sources: [],
+      onLost: (s, j) => lost.push([s, j]),
+    })
 
     // when
     next.claimSession("ses_parent")
@@ -93,7 +110,14 @@ describe("RunningJobsLedger", () => {
     const root = scratch()
     ledger(root, { current: [task] }, []).flush()
     const lost: Array<[string, RunningJob[]]> = []
-    const next = new RunningJobsLedger({ root, pid: 200, hostname: "host", isAlive: (pid) => pid === 100, sources: [], onLost: (s, j) => lost.push([s, j]) })
+    const next = new RunningJobsLedger({
+      root,
+      pid: 200,
+      hostname: "host",
+      isAlive: (pid) => pid === 100,
+      sources: [],
+      onLost: (s, j) => lost.push([s, j]),
+    })
 
     next.claimSession("ses_parent")
 
@@ -107,7 +131,14 @@ describe("RunningJobsLedger", () => {
     ledger(root, { current: [task] }, []).flush()
     const lost: Array<[string, RunningJob[]]> = []
     const fresh = { ...task, id: "bg_2", childSessionId: "ses_child2" }
-    const next = new RunningJobsLedger({ root, pid: 200, hostname: "host", isAlive: () => false, sources: [() => [fresh]], onLost: (s, j) => lost.push([s, j]) })
+    const next = new RunningJobsLedger({
+      root,
+      pid: 200,
+      hostname: "host",
+      isAlive: () => false,
+      sources: [() => [fresh]],
+      onLost: (s, j) => lost.push([s, j]),
+    })
 
     // when
     next.flush()
@@ -122,7 +153,14 @@ describe("RunningJobsLedger", () => {
     const subject = ledger(root, { current: [] }, [])
     writeFileSync(subject.path("ses_parent"), "{not json")
     const lost: Array<[string, RunningJob[]]> = []
-    const next = new RunningJobsLedger({ root, pid: 200, hostname: "host", isAlive: () => false, sources: [], onLost: (s, j) => lost.push([s, j]) })
+    const next = new RunningJobsLedger({
+      root,
+      pid: 200,
+      hostname: "host",
+      isAlive: () => false,
+      sources: [],
+      onLost: (s, j) => lost.push([s, j]),
+    })
 
     next.claimSession("ses_parent")
 

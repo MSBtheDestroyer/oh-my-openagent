@@ -7,7 +7,9 @@ describe("parity plan", () => {
     const plan = parityPlan("/baseline.js")
     const ids = new Set(plan.probes.map((probe) => probe.id))
     // when
-    const missing = plan.rows.flatMap((row) => row.kind === "runtime" ? row.probes.filter((id) => !ids.has(id)).map((id) => `${row.id}: ${id}`) : [])
+    const missing = plan.rows.flatMap((row) =>
+      row.kind === "runtime" ? row.probes.filter((id) => !ids.has(id)).map((id) => `${row.id}: ${id}`) : [],
+    )
     // then
     expect(missing).toEqual([])
     expect(ids.size).toBe(plan.probes.length)

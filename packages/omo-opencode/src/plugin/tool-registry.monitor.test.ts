@@ -120,10 +120,12 @@ describe("monitor tool registry wiring", () => {
   })
 
   test("#given monitor is disabled by name #when registry is created #then the monitor tool is removed", () => {
-    const result = createRegistry(createPluginConfig({
-      monitor: { enabled: true },
-      disabled_tools: ["monitor"],
-    }))
+    const result = createRegistry(
+      createPluginConfig({
+        monitor: { enabled: true },
+        disabled_tools: ["monitor"],
+      }),
+    )
 
     expect(result.filteredTools).not.toHaveProperty("monitor")
   })

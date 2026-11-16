@@ -18,6 +18,12 @@ type TaskSource = {
     prompt: string
     status: string
   }>
+  /** Wakes owed to a parent session; a finished task's result reaches its parent only through one. */
+  listUndeliveredParentWakes?(): ReadonlyArray<{
+    sessionID: string
+    notifications: readonly string[]
+    queuedAt?: number
+  }>
   queueSessionNotice(sessionID: string, notification: string): Promise<void>
 }
 type MonitorSource = {
@@ -61,6 +67,15 @@ export function createRunningJobsLedger(input: {
       agent: task.agent,
       ...(task.sessionId ? { childSessionId: task.sessionId } : { prompt: task.prompt }),
     }))
+  const wakes = (): RunningJob[] =>
+    (input.backgroundManager.listUndeliveredParentWakes?.() ?? []).map((wake) => ({
+      kind: "wake",
+      id: `wake_${wake.sessionID}`,
+      sessionId: wake.sessionID,
+      description: `${wake.notifications.length} undelivered background notice${wake.notifications.length === 1 ? "" : "s"}`,
+      startedAt: new Date(wake.queuedAt ?? Date.now()).toISOString(),
+      notifications: [...wake.notifications],
+    }))
   const monitors = (): RunningJob[] =>
     (input.monitorManager?.listRunning() ?? []).map((record) => ({
       kind: "monitor",
@@ -85,12 +100,15 @@ export function createRunningJobsLedger(input: {
     }))
 
   const ledger = new RunningJobsLedger({
-    sources: [tasks, monitors, commands],
+    sources: [tasks, wakes, monitors, commands],
     ...(input.root ? { root: input.root } : {}),
     ...(input.pid !== undefined ? { pid: input.pid } : {}),
     ...(input.isAlive ? { isAlive: input.isAlive } : {}),
     onLost: (sessionID, jobs) => {
-      log("[running-jobs] Reporting jobs an earlier process left unfinished:", { sessionID, jobs: jobs.map((job) => job.id) })
+      log("[running-jobs] Reporting jobs an earlier process left unfinished:", {
+        sessionID,
+        jobs: jobs.map((job) => job.id),
+      })
       for (const job of jobs) {
         input.backgroundManager.queueSessionNotice(sessionID, formatLostJobNotice(job)).catch((error) => {
           log("[running-jobs] Could not deliver a lost-job notice:", { sessionID, id: job.id, error: String(error) })

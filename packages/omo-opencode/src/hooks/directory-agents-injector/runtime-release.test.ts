@@ -30,16 +30,28 @@ describe("directory injector runtime release", () => {
       writeFileSync(path, "export {}")
       const backing = new Map<string, Set<string>>()
       const storage = kind === "agents" ? agentsStorage : readmeStorage
-      const load = spyOn(storage, "loadInjectedPaths").mockImplementation((sessionID: string) => new Set(backing.get(sessionID)))
+      const load = spyOn(storage, "loadInjectedPaths").mockImplementation(
+        (sessionID: string) => new Set(backing.get(sessionID)),
+      )
       const save = spyOn(storage, "saveInjectedPaths").mockImplementation((sessionID: string, paths: Set<string>) => {
         backing.set(sessionID, new Set(paths))
       })
       const clear = spyOn(storage, "clearInjectedPaths").mockImplementation(() => {})
-      restoreSpies.push(() => load.mockRestore(), () => save.mockRestore(), () => clear.mockRestore())
-      const ctx = unsafeTestValue<PluginInput>({ directory, client: { session: { messages: async () => ({ data: [] }) } } })
+      restoreSpies.push(
+        () => load.mockRestore(),
+        () => save.mockRestore(),
+        () => clear.mockRestore(),
+      )
+      const ctx = unsafeTestValue<PluginInput>({
+        directory,
+        client: { session: { messages: async () => ({ data: [] }) } },
+      })
       const hook = kind === "agents" ? createDirectoryAgentsInjectorHook(ctx) : createDirectoryReadmeInjectorHook(ctx)
       for (const sessionID of ["directory-retired", "directory-sibling"]) {
-        await hook["tool.execute.after"]({ tool: "read", sessionID, callID: sessionID }, { title: path, output: "base", metadata: {} })
+        await hook["tool.execute.after"](
+          { tool: "read", sessionID, callID: sessionID },
+          { title: path, output: "base", metadata: {} },
+        )
       }
       const persisted = new Map([...backing].map(([id, paths]) => [id, new Set(paths)]))
       load.mockClear()

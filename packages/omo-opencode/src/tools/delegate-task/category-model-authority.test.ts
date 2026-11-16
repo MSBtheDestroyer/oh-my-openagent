@@ -12,8 +12,10 @@ describe("configured category model authority", () => {
       preserveConfiguredModels: native,
     })
     // then
-    expect(result?.config.models).toEqual(native
-      ? ["fixture/new-model high", { model: "fixture/known-model", temperature: 0.3 }]
-      : [{ model: "fixture/known-model", temperature: 0.3, variant: undefined }])
+    expect(result?.config.models).toEqual(
+      native
+        ? ["fixture/new-model high", { model: "fixture/known-model", temperature: 0.3 }]
+        : [{ model: "fixture/known-model", temperature: 0.3, variant: undefined }],
+    )
   })
 })

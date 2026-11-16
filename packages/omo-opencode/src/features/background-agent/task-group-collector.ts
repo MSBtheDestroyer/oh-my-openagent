@@ -13,9 +13,7 @@ type TaskGroup = {
 }
 
 /** What the manager does with a finished task's notice. */
-export type GroupedNotice =
-  | { readonly kind: "deliver"; readonly notification: string }
-  | { readonly kind: "hold" }
+export type GroupedNotice = { readonly kind: "deliver"; readonly notification: string } | { readonly kind: "hold" }
 
 /**
  * Holds a fan-out group's finished members until the last one is done, then hands back one notice built from all of
@@ -44,7 +42,10 @@ export class TaskGroupCollector {
    * Fixes the group's size once its launches are done: children that failed to launch never report. Returns the
    * combined notice, with the member to deliver it for, when every launched member had already finished.
    */
-  settleSize(groupId: string, size: number): { readonly task: BackgroundTask; readonly notification: string } | undefined {
+  settleSize(
+    groupId: string,
+    size: number,
+  ): { readonly task: BackgroundTask; readonly notification: string } | undefined {
     const group = this.groups.get(groupId)
     if (!group) return undefined
     if (size <= 0) {
@@ -53,7 +54,9 @@ export class TaskGroupCollector {
     }
     group.size = size
     const released = this.release(groupId, group)
-    return released?.kind === "deliver" && group.lastTask ? { task: group.lastTask, notification: released.notification } : undefined
+    return released?.kind === "deliver" && group.lastTask
+      ? { task: group.lastTask, notification: released.notification }
+      : undefined
   }
 
   clear(): void {

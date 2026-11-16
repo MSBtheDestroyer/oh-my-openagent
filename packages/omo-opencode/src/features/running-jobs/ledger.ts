@@ -10,7 +10,7 @@ import type { RunningJob } from "./types"
 export const RUNNING_JOBS_FLUSH_INTERVAL_MS = 1_000
 
 const RunningJobSchema = z.object({
-  kind: z.enum(["task", "monitor", "bash"]),
+  kind: z.enum(["task", "monitor", "bash", "wake"]),
   id: z.string().min(1),
   sessionId: z.string().min(1),
   description: z.string(),
@@ -21,6 +21,7 @@ const RunningJobSchema = z.object({
   command: z.string().optional(),
   timeoutMs: z.number().optional(),
   outputPath: z.string().optional(),
+  notifications: z.array(z.string()).readonly().optional(),
 })
 
 export const RunningJobsRecordSchema = z.object({
@@ -223,7 +224,9 @@ function processCommandLine(): string[] | undefined {
     if (!(error instanceof Error)) throw error
   }
   try {
-    return execFileSync("ps", ["-o", "args=", "-p", String(process.pid)], { encoding: "utf8" }).trim().split(/\s+/)
+    return execFileSync("ps", ["-o", "args=", "-p", String(process.pid)], { encoding: "utf8" })
+      .trim()
+      .split(/\s+/)
   } catch (error) {
     log("[running-jobs] Could not read this process's command line:", { error: String(error) })
     return undefined

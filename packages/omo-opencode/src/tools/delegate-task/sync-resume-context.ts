@@ -20,9 +20,9 @@ export async function resolveResumeContext(client: OpencodeClient, continuationI
       const info = messages[index].info
       context.resumeAgent ??= info?.agent
       if (!context.resumeModel) {
-        context.resumeModel = info?.model ?? (info?.providerID && info.modelID
-          ? { providerID: info.providerID, modelID: info.modelID }
-          : undefined)
+        context.resumeModel =
+          info?.model ??
+          (info?.providerID && info.modelID ? { providerID: info.providerID, modelID: info.modelID } : undefined)
         if (context.resumeModel) context.resumeVariant = info?.variant ?? info?.model?.variant
       }
       if (context.resumeAgent && context.resumeModel) break
@@ -35,9 +35,10 @@ export async function resolveResumeContext(client: OpencodeClient, continuationI
     const resumeMessageModel = prevMessage?.model
     return {
       resumeAgent: prevMessage?.agent,
-      resumeModel: resumeMessageModel?.providerID && resumeMessageModel.modelID
-        ? { providerID: resumeMessageModel.providerID, modelID: resumeMessageModel.modelID }
-        : undefined,
+      resumeModel:
+        resumeMessageModel?.providerID && resumeMessageModel.modelID
+          ? { providerID: resumeMessageModel.providerID, modelID: resumeMessageModel.modelID }
+          : undefined,
       resumeVariant: resumeMessageModel?.variant,
     }
   }

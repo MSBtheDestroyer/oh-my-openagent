@@ -65,9 +65,7 @@ describe("tui-sidebar mirror IPC", () => {
     const storageDir = mirrorStorageDir()
 
     // then
-    expect(storageDir).toBe(
-      join(xdgDataHome, "opencode", "storage", "oh-my-openagent", MIRROR_DIR_NAME),
-    )
+    expect(storageDir).toBe(join(xdgDataHome, "opencode", "storage", "oh-my-openagent", MIRROR_DIR_NAME))
   })
 
   it("#given two project directories #when resolving mirror files #then they map to different files", () => {
@@ -219,6 +217,24 @@ describe("tui-sidebar mirror IPC", () => {
     expect(statSync(mirrorFilePath(projectDir)).mode & 0o777).toBe(0o600)
   })
 
+  it("#given a valid snapshot #when writing #then it does not fsync the regenerable mirror", () => {
+    // given
+    const projectDir = makeTempDir("no-fsync")
+    const expected = snapshotFor(projectDir, Date.now())
+    let fsyncCalls = 0
+
+    // when
+    writeMirror(projectDir, expected, {
+      fsyncSync: () => {
+        fsyncCalls++
+      },
+    })
+
+    // then
+    expect(fsyncCalls).toBe(0)
+    expect(readMirror(projectDir)).toEqual(expected)
+  })
+
   it("#given a polling mirror reader #when the file is unchanged, rewritten, removed, or goes stale #then it matches readMirror", () => {
     // given
     const projectDir = makeTempDir("cached-reader")
@@ -229,7 +245,11 @@ describe("tui-sidebar mirror IPC", () => {
     // when
     const initial = readCached()
     const unchanged = readCached()
-    const rewritten = { ...first, activeAgents: [{ name: "atlas", status: "busy" as const }], updatedAt: Date.now() + 1 }
+    const rewritten = {
+      ...first,
+      activeAgents: [{ name: "atlas", status: "busy" as const }],
+      updatedAt: Date.now() + 1,
+    }
     writeMirror(projectDir, rewritten)
     const afterRewrite = readCached()
     writeMirror(projectDir, snapshotFor(projectDir, Date.now() - STALE_MS - 1_000))

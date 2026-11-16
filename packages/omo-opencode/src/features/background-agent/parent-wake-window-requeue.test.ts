@@ -19,10 +19,12 @@ type SessionMessageStub = {
 
 const FINAL_WAKE = "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n</system-reminder>"
 
-function createNotifier(options: {
-  readonly onPendingWakeRequeued?: (sessionID: string) => void
-  readonly recordDispatchedPrompts?: boolean
-} = {}): {
+function createNotifier(
+  options: {
+    readonly onPendingWakeRequeued?: (sessionID: string) => void
+    readonly recordDispatchedPrompts?: boolean
+  } = {},
+): {
   readonly notifier: ParentWakeNotifier
   readonly promptAsyncCalls: readonly PromptAsyncCall[]
 } {

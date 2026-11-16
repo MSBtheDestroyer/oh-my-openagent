@@ -1,5 +1,9 @@
 import { expect, test } from "bun:test"
-import { findNearestMessageWithFieldsFromSDK, NEAREST_MESSAGE_RECENT_WINDOW, type SDKMessage } from "./sdk-message-lookup"
+import {
+  findNearestMessageWithFieldsFromSDK,
+  NEAREST_MESSAGE_RECENT_WINDOW,
+  type SDKMessage,
+} from "./sdk-message-lookup"
 
 type MessagesInput = { readonly path: { readonly id: string }; readonly query?: { readonly limit?: number } }
 
@@ -27,7 +31,9 @@ const complete = (agent: string) => ({ agent, model: { providerID: "anthropic", 
 
 test("answers from the newest window without fetching the whole session", async () => {
   // given
-  const history = Array.from({ length: 500 }, (_, index) => message(index, complete(index === 499 ? "atlas" : "sisyphus")))
+  const history = Array.from({ length: 500 }, (_, index) =>
+    message(index, complete(index === 499 ? "atlas" : "sisyphus")),
+  )
   const { calls, client } = fakeClient(history)
 
   // when

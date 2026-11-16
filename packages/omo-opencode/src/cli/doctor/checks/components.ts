@@ -2,7 +2,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { checkLspComponents, isLspLanguageProblem, type LspComponentReport } from "@oh-my-opencode/lsp-core/lsp/component-check"
+import {
+  checkLspComponents,
+  isLspLanguageProblem,
+  type LspComponentReport,
+} from "@oh-my-opencode/lsp-core/lsp/component-check"
 import { parseLspRequestContext, runWithRequestContext } from "@oh-my-opencode/lsp-core/request-context"
 
 import { validatePluginConfig } from "../../../config/validate"
@@ -10,7 +14,13 @@ import { resolveLspConfigPaths } from "../../../mcp/lsp"
 import { runCommentChecker } from "../../../hooks/comment-checker/cli"
 import { CHECK_IDS, CHECK_NAMES } from "../framework/constants"
 import { spawnWithTimeout } from "../framework/spawn-with-timeout"
-import type { CheckResult, ComponentsReport, DoctorIssue, ToolComponentId, ToolComponentReport } from "../framework/types"
+import type {
+  CheckResult,
+  ComponentsReport,
+  DoctorIssue,
+  ToolComponentId,
+  ToolComponentReport,
+} from "../framework/types"
 import { checkAstGrepCli, checkCommentChecker } from "./dependencies"
 import { getGhCliInfo } from "./tools-gh"
 import { getInstalledLspServers } from "./tools-lsp"
@@ -56,7 +66,9 @@ export async function probeAstGrep(probe: boolean): Promise<ToolComponentReport>
       path: null,
       version: null,
       detail: "AST-Grep CLI (sg) is not provisioned.",
-      remediation: ["The ast-grep skill resolves sg automatically; run omo doctor or lazycodex-ai doctor to check provisioning."],
+      remediation: [
+        "The ast-grep skill resolves sg automatically; run omo doctor or lazycodex-ai doctor to check provisioning.",
+      ],
     }
   }
   const base = { id: "ast-grep" as const, path: info.path, version: info.version }
@@ -75,7 +87,12 @@ export async function probeAstGrep(probe: boolean): Promise<ToolComponentReport>
       return { ...base, status: "ok", detail: "sg matched a pattern in a fixture.", remediation: [] }
     }
     const reason = result.timedOut ? "timed out" : `exit ${result.exitCode}: ${firstLine(result.stderr)}`
-    return { ...base, status: "failed", detail: `sg did not match the fixture (${reason}).`, remediation: ["Delete the provisioned sg so the ast-grep skill re-provisions it."] }
+    return {
+      ...base,
+      status: "failed",
+      detail: `sg did not match the fixture (${reason}).`,
+      remediation: ["Delete the provisioned sg so the ast-grep skill re-provisions it."],
+    }
   })
 }
 
@@ -88,11 +105,14 @@ export async function probeCommentChecker(probe: boolean): Promise<ToolComponent
       path: null,
       version: null,
       detail: "The comment-checker binary is not installed.",
-      remediation: ["The hook downloads its pinned release on first use; allow access to github.com and restart OpenCode."],
+      remediation: [
+        "The hook downloads its pinned release on first use; allow access to github.com and restart OpenCode.",
+      ],
     }
   }
   const base = { id: "comment-checker" as const, path: info.path, version: info.version }
-  if (!probe) return { ...base, status: "present", detail: "comment-checker resolves; probing was disabled.", remediation: [] }
+  if (!probe)
+    return { ...base, status: "present", detail: "comment-checker resolves; probing was disabled.", remediation: [] }
 
   const binaryPath = info.path
   return withScratchDir("omo-comment-checker-probe-", async (directory) => {
@@ -111,34 +131,75 @@ export async function probeCommentChecker(probe: boolean): Promise<ToolComponent
     if (result.hasComments) {
       return { ...base, status: "ok", detail: "comment-checker flagged the comment in a fixture.", remediation: [] }
     }
-    const reason = result.failure === undefined
-      ? "it reported no comments, or timed out"
-      : `exit ${result.failure.exitCode ?? "none"}: ${firstLine(result.failure.stderr)}`
-    return { ...base, status: "failed", detail: `comment-checker did not flag the fixture (${reason}).`, remediation: ["Delete the cached comment-checker binary so the hook downloads it again."] }
+    const reason =
+      result.failure === undefined
+        ? "it reported no comments, or timed out"
+        : `exit ${result.failure.exitCode ?? "none"}: ${firstLine(result.failure.stderr)}`
+    return {
+      ...base,
+      status: "failed",
+      detail: `comment-checker did not flag the fixture (${reason}).`,
+      remediation: ["Delete the cached comment-checker binary so the hook downloads it again."],
+    }
   })
 }
 
 export async function probeGh(): Promise<ToolComponentReport> {
   const info = await getGhCliInfo()
   if (!info.installed) {
-    return { id: "gh", status: "missing", path: null, version: null, detail: "gh CLI is not installed.", remediation: ["Install from https://cli.github.com/"] }
+    return {
+      id: "gh",
+      status: "missing",
+      path: null,
+      version: null,
+      detail: "gh CLI is not installed.",
+      remediation: ["Install from https://cli.github.com/"],
+    }
   }
   const base = { id: "gh" as const, path: info.path, version: info.version, account: info.username }
   if (!info.authenticated) {
-    return { ...base, status: "unauthenticated", detail: "gh is installed but `gh auth status` reports no login.", remediation: ["Run: gh auth login"] }
+    return {
+      ...base,
+      status: "unauthenticated",
+      detail: "gh is installed but `gh auth status` reports no login.",
+      remediation: ["Run: gh auth login"],
+    }
   }
-  return { ...base, status: "ok", detail: `gh auth status succeeded${info.username ? ` as ${info.username}` : ""}.`, remediation: [] }
+  return {
+    ...base,
+    status: "ok",
+    detail: `gh auth status succeeded${info.username ? ` as ${info.username}` : ""}.`,
+    remediation: [],
+  }
 }
 
 function lspBridgeReport(cwd: string): ToolComponentReport {
   const bridge = getInstalledLspServers({ cwd })
   if (bridge.length === 0) {
-    return { id: "lsp-bridge", status: "missing", path: null, version: null, detail: "The LSP tools bridge cannot start.", remediation: ["Reinstall oh-my-openagent; the bridge needs node or bun plus npm to bootstrap."] }
+    return {
+      id: "lsp-bridge",
+      status: "missing",
+      path: null,
+      version: null,
+      detail: "The LSP tools bridge cannot start.",
+      remediation: ["Reinstall oh-my-openagent; the bridge needs node or bun plus npm to bootstrap."],
+    }
   }
-  return { id: "lsp-bridge", status: "present", path: null, version: null, detail: "The LSP tools bridge command resolves. Server health is reported per language.", remediation: [] }
+  return {
+    id: "lsp-bridge",
+    status: "present",
+    path: null,
+    version: null,
+    detail: "The LSP tools bridge command resolves. Server health is reported per language.",
+    remediation: [],
+  }
 }
 
-async function checkLanguages(cwd: string, requiredLanguages: readonly string[], probe: boolean): Promise<LspComponentReport> {
+async function checkLanguages(
+  cwd: string,
+  requiredLanguages: readonly string[],
+  probe: boolean,
+): Promise<LspComponentReport> {
   const paths = resolveLspConfigPaths(cwd)
   const context = parseLspRequestContext({
     cwd: paths.cwd,
@@ -168,13 +229,17 @@ export function gatherToolComponents(options: ComponentsOptions = {}): Promise<r
   return once(["tools", cwd, probe], async () => {
     const disabled = loadDisabled(cwd)
     const [astGrep, commentChecker, gh] = await Promise.all([
-      disabled.disabled_skills.includes("ast-grep") ? Promise.resolve(skipped("ast-grep", "Disabled by disabled_skills.")) : probeAstGrep(probe),
+      disabled.disabled_skills.includes("ast-grep")
+        ? Promise.resolve(skipped("ast-grep", "Disabled by disabled_skills."))
+        : probeAstGrep(probe),
       disabled.disabled_hooks.includes("comment-checker")
         ? Promise.resolve(skipped("comment-checker", "Disabled by disabled_hooks."))
         : probeCommentChecker(probe),
       probeGh(),
     ])
-    const bridge = disabled.disabled_mcps.includes("lsp") ? skipped("lsp-bridge", "Disabled by disabled_mcps.") : lspBridgeReport(cwd)
+    const bridge = disabled.disabled_mcps.includes("lsp")
+      ? skipped("lsp-bridge", "Disabled by disabled_mcps.")
+      : lspBridgeReport(cwd)
     return [bridge, astGrep, commentChecker, gh]
   })
 }
@@ -193,7 +258,10 @@ export function gatherComponents(options: ComponentsOptions = {}): Promise<Compo
   })
 }
 
-export function findToolComponent(tools: readonly ToolComponentReport[], id: ToolComponentId): ToolComponentReport | undefined {
+export function findToolComponent(
+  tools: readonly ToolComponentReport[],
+  id: ToolComponentId,
+): ToolComponentReport | undefined {
   return tools.find((tool) => tool.id === id)
 }
 

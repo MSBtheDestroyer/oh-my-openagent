@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { readdir, readFile, stat, unlink, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
-import { TaskOwnerSchema, TaskRecoveryError, type TaskRecoveryStore } from "./task-recovery-store"
+import { OwnerProcessSchema, TaskOwnerSchema, TaskRecoveryError, type TaskRecoveryStore } from "./task-recovery-store"
 import { probeTaskOwner } from "./task-worker-ownership"
 
 /*
@@ -29,10 +29,16 @@ export const RECOVERY_SWEEP_BUDGET = 100
 const CURSOR_FILE = ".sweep-cursor"
 const ENTRY = /^([0-9a-f]{64})\.json(?:\.(lock|[0-9a-f-]{36}))?$/
 
-const SweepRecordSchema = z.object({
-  version: z.literal(1), sessionId: z.string().min(1), cwd: z.string().min(1),
-  generation: z.string().uuid(), owner: TaskOwnerSchema,
-}).passthrough()
+const SweepRecordSchema = z
+  .object({
+    version: z.literal(1),
+    sessionId: z.string().min(1),
+    cwd: z.string().min(1),
+    generation: z.string().uuid(),
+    owner: TaskOwnerSchema,
+    ownerProcess: OwnerProcessSchema.optional(),
+  })
+  .passthrough()
 
 export type ChildPresence = "exists" | "missing" | "unknown"
 export type SweepRemoval = "abandoned-lock" | "abandoned-temp" | "invalid-record" | "child-gone"
@@ -71,16 +77,26 @@ async function generationOf(file: string): Promise<string | undefined> {
   }
 }
 
-async function judge(input: TaskRecoverySweepInput, file: string, hash: string, suffix: string | undefined): Promise<Verdict | undefined> {
+async function judge(
+  input: TaskRecoverySweepInput,
+  file: string,
+  mtimeMs: number,
+  hash: string,
+  suffix: string | undefined,
+): Promise<Verdict | undefined> {
   if (suffix === "lock") return { reason: "abandoned-lock" }
   if (suffix !== undefined) return { reason: "abandoned-temp" }
   let raw: string
-  try { raw = await readFile(file, "utf8") } catch (error) {
+  try {
+    raw = await readFile(file, "utf8")
+  } catch (error) {
     if (!(error instanceof Error)) throw error
     return undefined
   }
   let value: unknown
-  try { value = JSON.parse(raw) } catch (error) {
+  try {
+    value = JSON.parse(raw)
+  } catch (error) {
     if (!(error instanceof SyntaxError)) throw error
     return { reason: "invalid-record" }
   }
@@ -89,17 +105,22 @@ async function judge(input: TaskRecoverySweepInput, file: string, hash: string, 
   if (!record.success || createHash("sha256").update(record.data.sessionId).digest("hex") !== hash) {
     return { reason: "invalid-record" }
   }
-  if (await (input.probeOwner ?? probeTaskOwner)(record.data) !== "dead") return undefined
-  if (await input.childPresence(record.data.sessionId) !== "missing") return undefined
+  if ((await (input.probeOwner ?? probeTaskOwner)({ ...record.data, recordedAt: mtimeMs })) !== "dead") return undefined
+  if ((await input.childPresence(record.data.sessionId)) !== "missing") return undefined
   return { reason: "child-gone", sessionId: record.data.sessionId, generation: record.data.generation }
 }
 
-async function remove(input: TaskRecoverySweepInput, file: string, mtimeMs: number, verdict: Verdict): Promise<boolean> {
+async function remove(
+  input: TaskRecoverySweepInput,
+  file: string,
+  mtimeMs: number,
+  verdict: Verdict,
+): Promise<boolean> {
   const { sessionId, generation } = verdict
   if (sessionId !== undefined) {
     try {
       return await input.store.locked(sessionId, async () => {
-        if (await generationOf(file) !== generation) return false
+        if ((await generationOf(file)) !== generation) return false
         input.store.remove(sessionId)
         return true
       })
@@ -125,7 +146,8 @@ export async function sweepTaskRecoveryRecords(input: TaskRecoverySweepInput): P
   let cursor = ""
   try {
     const marker = await stat(cursorPath)
-    if (input.intervalMs !== undefined && now() - marker.mtimeMs < input.intervalMs) return { skipped: true, examined: 0, removed: [] }
+    if (input.intervalMs !== undefined && now() - marker.mtimeMs < input.intervalMs)
+      return { skipped: true, examined: 0, removed: [] }
     cursor = await readFile(cursorPath, "utf8")
   } catch (error) {
     if (!isMissing(error)) throw error
@@ -146,21 +168,27 @@ export async function sweepTaskRecoveryRecords(input: TaskRecoverySweepInput): P
   let next = ""
   let complete = true
   for (const name of ordered) {
-    if (examined >= budget || input.shouldContinue?.() === false) { complete = false; break }
+    if (examined >= budget || input.shouldContinue?.() === false) {
+      complete = false
+      break
+    }
     const [, hash, suffix] = ENTRY.exec(name) ?? []
     if (hash === undefined) continue
     const file = join(input.store.root, name)
     let mtimeMs: number
-    try { mtimeMs = (await stat(file)).mtimeMs } catch (error) {
+    try {
+      mtimeMs = (await stat(file)).mtimeMs
+    } catch (error) {
       if (isMissing(error)) continue
       throw error
     }
     if (now() - mtimeMs < input.minAgeMs) continue
     examined += 1
     next = name
-    const verdict = await judge(input, file, hash, suffix)
+    const verdict = await judge(input, file, mtimeMs, hash, suffix)
     if (verdict === undefined) continue
-    if (input.dryRun || await remove(input, file, mtimeMs, verdict)) removed.push({ file: name, reason: verdict.reason })
+    if (input.dryRun || (await remove(input, file, mtimeMs, verdict)))
+      removed.push({ file: name, reason: verdict.reason })
   }
   if (!input.dryRun) await writeFile(cursorPath, complete ? "" : next, { mode: 0o600 })
   return { skipped: false, examined, removed }

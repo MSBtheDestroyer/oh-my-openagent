@@ -21,19 +21,34 @@ describe("pollSyncSession", () => {
     let reads = 0
     const clock = spyOn(Date, "now").mockImplementation(() => now)
     const { pollSyncSession } = require("./sync-session-poller")
-    const client = { session: {
-      status: async () => { now += 10; return { data: { stream: { type: reads >= 3 ? "idle" : "busy" } } } },
-      messages: async () => {
-        reads += 1
-        return { data: [
-          { info: { id: "msg-001", role: "user" } },
-          { info: { id: "msg-002", role: "assistant", ...(reads >= 3 ? { finish: "stop" } : {}) }, parts: [{ type: "text", text: "x".repeat(reads) }] },
-        ] }
+    const client = {
+      session: {
+        status: async () => {
+          now += 10
+          return { data: { stream: { type: reads >= 3 ? "idle" : "busy" } } }
+        },
+        messages: async () => {
+          reads += 1
+          return {
+            data: [
+              { info: { id: "msg-001", role: "user" } },
+              {
+                info: { id: "msg-002", role: "assistant", ...(reads >= 3 ? { finish: "stop" } : {}) },
+                parts: [{ type: "text", text: "x".repeat(reads) }],
+              },
+            ],
+          }
+        },
       },
-    } }
+    }
     try {
       // when
-      const result = await pollSyncSession(createMockCtx(), client, { sessionID: "stream", agentToUse: "worker", toastManager: null, taskId: undefined })
+      const result = await pollSyncSession(createMockCtx(), client, {
+        sessionID: "stream",
+        agentToUse: "worker",
+        toastManager: null,
+        taskId: undefined,
+      })
       // then
       expect(result).toBeNull()
       expect(reads).toBe(4)
@@ -75,7 +90,7 @@ describe("pollSyncSession", () => {
               },
             ],
           }),
-          status: async () => ({ data: { "ses_test": { type: "idle" } } }),
+          status: async () => ({ data: { ses_test: { type: "idle" } } }),
         },
       }
 
@@ -108,13 +123,21 @@ describe("pollSyncSession", () => {
               data: [
                 { info: { id: "msg_001", role: "user", time: { created: 1000 } } },
                 {
-                  info: { id: "msg_002", role: "assistant", time: { created: 2000 }, error: null, ...(finished ? { finish: "stop" } : {}) },
+                  info: {
+                    id: "msg_002",
+                    role: "assistant",
+                    time: { created: 2000 },
+                    error: null,
+                    ...(finished ? { finish: "stop" } : {}),
+                  },
                   parts: finished ? [{ type: "text", text: "done" }] : [],
                 },
               ],
             }
           },
-          status: async () => ({ data: messageCallCount > 2 ? {} : { ses_null: { type: "busy", revision: messageCallCount } } }),
+          status: async () => ({
+            data: messageCallCount > 2 ? {} : { ses_null: { type: "busy", revision: messageCallCount } },
+          }),
         },
       }
 
@@ -166,12 +189,17 @@ describe("pollSyncSession", () => {
         },
       }
 
-      const result = await pollSyncSession({ ...createMockCtx(), abort: controller.signal }, mockClient, {
-        sessionID: "ses_busy_error",
-        agentToUse: "test-agent",
-        toastManager: null,
-        taskId: undefined,
-      }, 50)
+      const result = await pollSyncSession(
+        { ...createMockCtx(), abort: controller.signal },
+        mockClient,
+        {
+          sessionID: "ses_busy_error",
+          agentToUse: "test-agent",
+          toastManager: null,
+          taskId: undefined,
+        },
+        50,
+      )
 
       expect(result).toBe(terminalError)
       expect(messageCallCount).toBe(1)
@@ -199,19 +227,24 @@ describe("pollSyncSession", () => {
               { info: { id: "msg_003", role: "user", time: { created: 3000 } } },
             ],
           }),
-          status: async () => ({ data: { "ses_test": { type: "idle" } } }),
+          status: async () => ({ data: { ses_test: { type: "idle" } } }),
           abort: async () => ({}),
         },
       }
 
       // when: calling with stale error
-      const result = await pollSyncSession(createMockCtx(), mockClient, {
-        sessionID: "ses_test",
-        agentToUse: "test-agent",
-        toastManager: null,
-        taskId: undefined,
-        anchorMessageCount: 2,
-      }, 50)
+      const result = await pollSyncSession(
+        createMockCtx(),
+        mockClient,
+        {
+          sessionID: "ses_test",
+          agentToUse: "test-agent",
+          toastManager: null,
+          taskId: undefined,
+          anchorMessageCount: 2,
+        },
+        50,
+      )
 
       // then: times out (ignores stale error)
       expect(result).toContain("Poll inactivity timeout reached")
@@ -232,7 +265,7 @@ describe("pollSyncSession", () => {
               },
             ],
           }),
-          status: async () => ({ data: { "ses_test": { type: "idle" } } }),
+          status: async () => ({ data: { ses_test: { type: "idle" } } }),
         },
       }
 
@@ -283,7 +316,7 @@ describe("pollSyncSession", () => {
               ],
             }
           },
-          status: async () => ({ data: { "ses_test": { type: "idle" } } }),
+          status: async () => ({ data: { ses_test: { type: "idle" } } }),
         },
       }
 
@@ -335,7 +368,7 @@ describe("pollSyncSession", () => {
               ],
             }
           },
-          status: async () => ({ data: { "ses_test": { type: "idle" } } }),
+          status: async () => ({ data: { ses_test: { type: "idle" } } }),
         },
       }
 
@@ -387,7 +420,7 @@ describe("pollSyncSession", () => {
               ],
             }
           },
-          status: async () => ({ data: { "ses_test": { type: "idle" } } }),
+          status: async () => ({ data: { ses_test: { type: "idle" } } }),
         },
       }
 
@@ -440,7 +473,7 @@ describe("pollSyncSession", () => {
               ],
             }
           },
-          status: async () => ({ data: { "ses_test": { type: "idle" } } }),
+          status: async () => ({ data: { ses_test: { type: "idle" } } }),
         },
       }
 
@@ -489,18 +522,22 @@ describe("pollSyncSession", () => {
       }
 
       // when: calling pollSyncSession
-      const result = await pollSyncSession({
-        sessionID: "parent-session",
-        messageID: "parent-message",
-        agent: "test-agent",
-        abort: controller.signal,
-      }, mockClient, {
-        sessionID: "ses_abort_complete",
-        agentToUse: "test-agent",
-        toastManager: { removeTask: () => {} },
-        taskId: "task_123",
-        anchorMessageCount: 1,
-      })
+      const result = await pollSyncSession(
+        {
+          sessionID: "parent-session",
+          messageID: "parent-message",
+          agent: "test-agent",
+          abort: controller.signal,
+        },
+        mockClient,
+        {
+          sessionID: "ses_abort_complete",
+          agentToUse: "test-agent",
+          toastManager: { removeTask: () => {} },
+          taskId: "task_123",
+          anchorMessageCount: 1,
+        },
+      )
 
       // then: returns null with no abort
       expect(result).toBeNull()
@@ -587,24 +624,29 @@ describe("pollSyncSession", () => {
             abortCount++
           },
           messages: async () => ({
-            data: [
-              { info: { id: "msg_001", role: "user", time: { created: 1000 } } },
-            ],
+            data: [{ info: { id: "msg_001", role: "user", time: { created: 1000 } } }],
           }),
-          status: async () => ({ data: { "ses_timeout": { type: "idle" } } }),
+          status: async () => ({ data: { ses_timeout: { type: "idle" } } }),
         },
       }
 
       // when: calling pollSyncSession
-      const result = await pollSyncSession(createMockCtx(), mockClient, {
-        sessionID: "ses_timeout",
-        agentToUse: "test-agent",
-        toastManager: null,
-        taskId: undefined,
-      }, 1)
+      const result = await pollSyncSession(
+        createMockCtx(),
+        mockClient,
+        {
+          sessionID: "ses_timeout",
+          agentToUse: "test-agent",
+          toastManager: null,
+          taskId: undefined,
+        },
+        1,
+      )
 
       // then: returns timeout error
-      expect(result).toBe("Poll inactivity timeout reached after 50ms without active OpenCode status for session ses_timeout")
+      expect(result).toBe(
+        "Poll inactivity timeout reached after 50ms without active OpenCode status for session ses_timeout",
+      )
       expect(abortCount).toBe(1)
     })
   })
@@ -617,33 +659,33 @@ describe("pollSyncSession", () => {
       let statusCallCount = 0
       let messageCallCount = 0
       let messageCallsWhileActive = 0
-       const mockClient = {
-         session: {
-           messages: async () => {
-             messageCallCount++
-             if (statusCallCount <= 2) messageCallsWhileActive++
-             return {
-               data:
-                 statusCallCount >= 3
-                   ? [
-                       { info: { id: "msg_001", role: "user", time: { created: 1000 } } },
-                       {
-                         info: { id: "msg_002", role: "assistant", time: { created: 2000 }, finish: "end_turn" },
-                         parts: [{ type: "text", text: "Done" }],
-                       },
-                     ]
-                   : [{ info: { id: "msg_001", role: "user", time: { created: 1000 } } }],
-             }
-           },
-           status: async () => {
-             statusCallCount++
-             if (statusCallCount <= 2) {
-               return { data: { "ses_busy": { type: "running" } } }
-             }
-             return { data: { "ses_busy": { type: "idle" } } }
-           },
-         },
-       }
+      const mockClient = {
+        session: {
+          messages: async () => {
+            messageCallCount++
+            if (statusCallCount <= 2) messageCallsWhileActive++
+            return {
+              data:
+                statusCallCount >= 3
+                  ? [
+                      { info: { id: "msg_001", role: "user", time: { created: 1000 } } },
+                      {
+                        info: { id: "msg_002", role: "assistant", time: { created: 2000 }, finish: "end_turn" },
+                        parts: [{ type: "text", text: "Done" }],
+                      },
+                    ]
+                  : [{ info: { id: "msg_001", role: "user", time: { created: 1000 } } }],
+            }
+          },
+          status: async () => {
+            statusCallCount++
+            if (statusCallCount <= 2) {
+              return { data: { ses_busy: { type: "running" } } }
+            }
+            return { data: { ses_busy: { type: "idle" } } }
+          },
+        },
+      }
 
       // when: calling pollSyncSession
       const result = await pollSyncSession(createMockCtx(), mockClient, {
@@ -903,13 +945,18 @@ describe("pollSyncSession", () => {
         },
       }
 
-      const result = await pollSyncSession(createMockCtx(), mockClient, {
-        sessionID: "ses_test",
-        agentToUse: "test-agent",
-        toastManager: null,
-        taskId: undefined,
-        hasActiveChildBackgroundTasks: () => true,
-      }, 30)
+      const result = await pollSyncSession(
+        createMockCtx(),
+        mockClient,
+        {
+          sessionID: "ses_test",
+          agentToUse: "test-agent",
+          toastManager: null,
+          taskId: undefined,
+          hasActiveChildBackgroundTasks: () => true,
+        },
+        30,
+      )
 
       expect(result).toContain("Poll inactivity timeout reached")
     })

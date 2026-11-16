@@ -37,18 +37,11 @@ describe("createToolExecuteBeforeHandler", () => {
       "team_approve_shutdown",
       "team_reject_shutdown",
       "team_delete",
-    ].map((tool) =>
-      handler(
-        { tool, sessionID, callID: `call_${tool}` },
-        { args: {} as Record<string, unknown> },
-      ),
-    )
+    ].map((tool) => handler({ tool, sessionID, callID: `call_${tool}` }, { args: {} as Record<string, unknown> }))
 
     //#then
     for (const run of runs) {
-      await expect(run).rejects.toThrow(
-        "BTW side conversations cannot delegate work.",
-      )
+      await expect(run).rejects.toThrow("BTW side conversations cannot delegate work.")
     }
   })
 
@@ -102,7 +95,9 @@ describe("createToolExecuteBeforeHandler", () => {
 
     const handler = createToolExecuteBeforeHandler({ ctx, hooks })
     const input = { tool: "question", sessionID: "ses_q", callID: "call_q" }
-    const output = { args: { questions: [{ question: "Proceed?", options: [{ label: "Yes" }] }] } as Record<string, unknown> }
+    const output = {
+      args: { questions: [{ question: "Proceed?", options: [{ label: "Yes" }] }] } as Record<string, unknown>,
+    }
 
     await handler(input, output)
 
@@ -145,9 +140,7 @@ describe("createToolExecuteBeforeHandler", () => {
         },
       },
     }
-    const preservedTodos = [
-      { content: "Preserved detailed task", status: "pending", priority: "high" },
-    ]
+    const preservedTodos = [{ content: "Preserved detailed task", status: "pending", priority: "high" }]
     const hooks = {
       compactionTodoPreserver: {
         "tool.execute.before": async (
@@ -233,7 +226,9 @@ describe("createToolExecuteBeforeHandler", () => {
       const ctx = createCtxWithSessionMessages()
       const handler = createToolExecuteBeforeHandler({ ctx, hooks: emptyHooks })
       const input = { tool: "task", sessionID: "ses_123", callID: "call_1" }
-      const output = { args: { category: "quick", subagent_type: "oracle", description: "Test" } as Record<string, unknown> }
+      const output = {
+        args: { category: "quick", subagent_type: "oracle", description: "Test" } as Record<string, unknown>,
+      }
 
       //#when
       await handler(input, output)
@@ -251,7 +246,9 @@ describe("createToolExecuteBeforeHandler", () => {
       ])
       const handler = createToolExecuteBeforeHandler({ ctx, hooks: emptyHooks })
       const input = { tool: "task", sessionID: "ses_123", callID: "call_1" }
-      const output = { args: { task_id: "ses_abc123", description: "Continue task", prompt: "fix it" } as Record<string, unknown> }
+      const output = {
+        args: { task_id: "ses_abc123", description: "Continue task", prompt: "fix it" } as Record<string, unknown>,
+      }
 
       //#when
       await handler(input, output)
@@ -262,12 +259,12 @@ describe("createToolExecuteBeforeHandler", () => {
 
     test("normalizes task_id into the canonical resume argument", async () => {
       //#given
-      const ctx = createCtxWithSessionMessages([
-        { info: { role: "assistant", agent: "oracle" } },
-      ])
+      const ctx = createCtxWithSessionMessages([{ info: { role: "assistant", agent: "oracle" } }])
       const handler = createToolExecuteBeforeHandler({ ctx, hooks: emptyHooks })
       const input = { tool: "task", sessionID: "ses_123", callID: "call_1" }
-      const output = { args: { task_id: "ses_resume_123", description: "Continue task", prompt: "fix it" } as Record<string, unknown> }
+      const output = {
+        args: { task_id: "ses_resume_123", description: "Continue task", prompt: "fix it" } as Record<string, unknown>,
+      }
 
       //#when
       await handler(input, output)
@@ -279,13 +276,12 @@ describe("createToolExecuteBeforeHandler", () => {
 
     test("falls back to 'continue' when session has no agent info", async () => {
       //#given
-      const ctx = createCtxWithSessionMessages([
-        { info: { role: "user" } },
-        { info: { role: "assistant" } },
-      ])
+      const ctx = createCtxWithSessionMessages([{ info: { role: "user" } }, { info: { role: "assistant" } }])
       const handler = createToolExecuteBeforeHandler({ ctx, hooks: emptyHooks })
       const input = { tool: "task", sessionID: "ses_123", callID: "call_1" }
-      const output = { args: { task_id: "ses_abc123", description: "Continue task", prompt: "fix it" } as Record<string, unknown> }
+      const output = {
+        args: { task_id: "ses_abc123", description: "Continue task", prompt: "fix it" } as Record<string, unknown>,
+      }
 
       //#when
       await handler(input, output)
@@ -299,7 +295,12 @@ describe("createToolExecuteBeforeHandler", () => {
       const ctx = createCtxWithSessionMessages()
       const handler = createToolExecuteBeforeHandler({ ctx, hooks: emptyHooks })
       const input = { tool: "task", sessionID: "ses_123", callID: "call_1" }
-      const output = { args: { task_id: "ses_abc123", subagent_type: "explore", description: "Continue explore" } as Record<string, unknown> }
+      const output = {
+        args: { task_id: "ses_abc123", subagent_type: "explore", description: "Continue explore" } as Record<
+          string,
+          unknown
+        >,
+      }
 
       //#when
       await handler(input, output)

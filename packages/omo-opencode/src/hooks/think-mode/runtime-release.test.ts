@@ -10,7 +10,9 @@ describe("session runtime memory release", () => {
       const stores = new Set<Map<unknown, unknown>>()
       const originalSet = Map.prototype.set
       const setSpy = spyOn(Map.prototype, "set").mockImplementation(function (
-        this: Map<unknown, unknown>, key: unknown, value: unknown,
+        this: Map<unknown, unknown>,
+        key: unknown,
+        value: unknown,
       ) {
         if (key === "memory-retired") stores.add(this)
         return originalSet.call(this, key, value)

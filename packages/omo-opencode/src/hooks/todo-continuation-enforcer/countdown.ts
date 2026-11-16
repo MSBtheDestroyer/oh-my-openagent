@@ -3,21 +3,13 @@ import type { PluginInput } from "@opencode-ai/plugin"
 import type { BackgroundManager } from "../../features/background-agent"
 import { log } from "../../shared/logger"
 
-import {
-  COUNTDOWN_SECONDS,
-  HOOK_NAME,
-  TOAST_DURATION_MS,
-} from "./constants"
+import { COUNTDOWN_SECONDS, HOOK_NAME, TOAST_DURATION_MS } from "./constants"
 import type { ResolvedMessageInfo } from "./types"
 import type { SessionStateStore } from "./session-state"
 import { injectContinuation } from "./continuation-injection"
 import type { ContinuationPermit } from "../../features/run-continuation-state/host-authority"
 
-async function showCountdownToast(
-  ctx: PluginInput,
-  seconds: number,
-  incompleteCount: number
-): Promise<void> {
+async function showCountdownToast(ctx: PluginInput, seconds: number, incompleteCount: number): Promise<void> {
   await ctx.client.tui
     .showToast({
       body: {

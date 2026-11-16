@@ -24,11 +24,7 @@ import { migrateLegacyWorkspaceDirectory } from "../shared/legacy-workspace-migr
 import { sweepOmoFamiliesBestEffort } from "../shared/omo-process-sweep"
 import { injectServerAuthIntoClient } from "../shared/opencode-server-auth"
 import { recordPluginTelemetry } from "../shared/posthog"
-import {
-  initLiveServerRoute,
-  setLiveParentWakeRoutingDisabled,
-  warmLiveServerProbe,
-} from "../shared/live-server-route"
+import { initLiveServerRoute, setLiveParentWakeRoutingDisabled, warmLiveServerProbe } from "../shared/live-server-route"
 import { startBackgroundCheck as startTmuxCheck } from "../tools/interactive-bash"
 import { runOpenCodeStartupMigration } from "../startup-migration"
 

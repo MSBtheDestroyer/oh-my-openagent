@@ -1,17 +1,10 @@
 import { __getProcessCleanupSignalListenerForTesting } from "./process-cleanup"
 
-type ProcessCleanupEvent =
-  | NodeJS.Signals
-  | "beforeExit"
-  | "exit"
-  | "uncaughtException"
-  | "unhandledRejection"
+type ProcessCleanupEvent = NodeJS.Signals | "beforeExit" | "exit" | "uncaughtException" | "unhandledRejection"
 
 type ProcessCleanupSignal = Parameters<typeof __getProcessCleanupSignalListenerForTesting>[0]
 
-export function getRegisteredProcessCleanupSignalListener(
-  signal: ProcessCleanupSignal,
-): () => void {
+export function getRegisteredProcessCleanupSignalListener(signal: ProcessCleanupSignal): () => void {
   const listener = __getProcessCleanupSignalListenerForTesting(signal)
   if (!listener) {
     throw new Error(`Expected this module to register a ${signal} listener`)
@@ -20,10 +13,7 @@ export function getRegisteredProcessCleanupSignalListener(
   return listener
 }
 
-export function getNewListener(
-  signal: ProcessCleanupEvent,
-  existingListeners: Function[],
-) {
+export function getNewListener(signal: ProcessCleanupEvent, existingListeners: Function[]) {
   const listeners = (() => {
     switch (signal) {
       case "beforeExit":

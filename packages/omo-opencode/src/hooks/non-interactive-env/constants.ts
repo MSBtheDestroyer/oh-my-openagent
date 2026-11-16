@@ -21,14 +21,17 @@ export const BASH_ENV_DEFAULTS = [
 ] as const satisfies readonly EnvironmentDefault[]
 
 export function getBashEnvDefaults(editorPolicy: EditorPolicy): Record<string, string> {
-  return Object.fromEntries(BASH_ENV_DEFAULTS
-    .filter((entry) => entry.preset === "core" || editorPolicy === "fail_closed")
-    .map(({ name, value }) => [name, value]))
+  return Object.fromEntries(
+    BASH_ENV_DEFAULTS.filter((entry) => entry.preset === "core" || editorPolicy === "fail_closed").map(
+      ({ name, value }) => [name, value],
+    ),
+  )
 }
 
 export function getBashEnvGuidance(editorPolicy: EditorPolicy): string {
   const defaults = Object.entries(getBashEnvDefaults(editorPolicy))
-    .map(([name, value]) => `${name}=${value}`).join(" ")
+    .map(([name, value]) => `${name}=${value}`)
+    .join(" ")
   return `On hosts with source-tagged shell.env, agent bash children receive ${defaults} as environment defaults, not command prefixes. Explicit environment overlays and shell assignments override them; user shells and PTYs are unchanged. ${editorPolicy === "fail_closed" ? "Editors fail closed: provide messages/files or explicitly select an editor; false does not approve an empty edit. " : "Editor settings are inherited. "}Do not repeat these defaults in commands. env -i, sudo, and SSH may clear them; opt in to operation-specific CI, package-manager, or merge settings only when needed.`
 }
 
@@ -62,10 +65,17 @@ export const SHELL_COMMAND_PATTERNS = {
   },
   // Banned commands - will always hang
   banned: [
-    "vim", "nano", "vi", "emacs",           // Editors
-    "less", "more", "man",                   // Pagers
-    "python (REPL)", "node (REPL)",          // REPLs without -c/-e
-    "git add -p", "git rebase -i",           // Interactive git modes
+    "vim",
+    "nano",
+    "vi",
+    "emacs", // Editors
+    "less",
+    "more",
+    "man", // Pagers
+    "python (REPL)",
+    "node (REPL)", // REPLs without -c/-e
+    "git add -p",
+    "git rebase -i", // Interactive git modes
   ],
   // Workarounds for scripts that require input
   workarounds: {

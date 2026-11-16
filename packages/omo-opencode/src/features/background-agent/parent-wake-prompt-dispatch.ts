@@ -83,7 +83,10 @@ export async function sendParentWakePrompt(input: ParentWakePromptDispatchInput)
         dispatchedWake.dispatchedAt = dispatchStartedAt
         if (await input.hasRecordedPromptAfterDispatch(dispatchedWake)) {
           markRetainedNoReplyAdmission(input, dispatchStartedAt)
-          input.trackDispatchedWake(createTrackedDispatchedWake(input.latestWake, input.forceNoReply), dispatchStartedAt)
+          input.trackDispatchedWake(
+            createTrackedDispatchedWake(input.latestWake, input.forceNoReply),
+            dispatchStartedAt,
+          )
           log("[background-agent] Treated failed parent wake prompt as accepted after observing session history:", {
             sessionID: input.sessionID,
             error: promptResult.error,
@@ -154,7 +157,9 @@ function markRetainedNoReplyAdmission(input: ParentWakePromptDispatchInput, disp
     return
   }
   input.latestWake.noReplyAdmittedAt = dispatchStartedAt
-  input.latestWake.admittedNotifications = [...new Set([...(input.latestWake.admittedNotifications ?? []), ...input.latestWake.notifications])]
+  input.latestWake.admittedNotifications = [
+    ...new Set([...(input.latestWake.admittedNotifications ?? []), ...input.latestWake.notifications]),
+  ]
   input.scheduleFlush()
 }
 

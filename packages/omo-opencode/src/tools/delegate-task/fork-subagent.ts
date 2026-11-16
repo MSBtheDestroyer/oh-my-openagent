@@ -16,15 +16,19 @@ export function isForkSubagent(subagentType: string | undefined): boolean {
  * The model the parent's last turn ran on, read from its messages: a fork that misses it would run on its agent's
  * configured model instead of the parent's.
  */
-export async function readParentModel(
-  client: OpencodeClient,
-  sessionID: string,
-): Promise<ParentContext["model"]> {
+export async function readParentModel(client: OpencodeClient, sessionID: string): Promise<ParentContext["model"]> {
   try {
-    const messages = normalizeSDKResponse(await client.session.messages({ path: { id: sessionID } }), [] as PromptContextMessage[])
+    const messages = normalizeSDKResponse(
+      await client.session.messages({ path: { id: sessionID } }),
+      [] as PromptContextMessage[],
+    )
     const model = resolvePromptContextFromSessionMessages(Array.isArray(messages) ? messages : [], sessionID)?.model
     if (!model?.providerID || !model.modelID) return undefined
-    return { providerID: model.providerID, modelID: model.modelID, ...(model.variant ? { variant: model.variant } : {}) }
+    return {
+      providerID: model.providerID,
+      modelID: model.modelID,
+      ...(model.variant ? { variant: model.variant } : {}),
+    }
   } catch (error) {
     log("[task] Could not read the parent's model for a fork:", { sessionID, error: String(error) })
     return undefined

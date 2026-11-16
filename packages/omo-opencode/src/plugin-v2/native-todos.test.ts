@@ -9,22 +9,38 @@ type Tool = Extract<Assistant["content"][number], { readonly type: "tool" }>
 type Completed = Extract<Tool["state"], { readonly status: "completed" }>
 
 function completed(todos: Completed["input"][string] | undefined): Tool {
-  return { type: "tool", id: "call", name: "todowrite", time: { created: 1 }, state: {
-    status: "completed", input: { todos: [{ content: "input must not win", status: "pending" }] },
-    content: [{ type: "text", text: "Todos updated" }], metadata: todos === undefined ? {} : { todos },
-  } }
+  return {
+    type: "tool",
+    id: "call",
+    name: "todowrite",
+    time: { created: 1 },
+    state: {
+      status: "completed",
+      input: { todos: [{ content: "input must not win", status: "pending" }] },
+      content: [{ type: "text", text: "Todos updated" }],
+      metadata: todos === undefined ? {} : { todos },
+    },
+  }
 }
 
 function assistant(id: string, content: Assistant["content"]): Assistant {
-  return { type: "assistant", id, time: { created: 1, completed: 2 }, agent: "sisyphus",
-    model: { providerID: "provider", id: "model" }, content }
+  return {
+    type: "assistant",
+    id,
+    time: { created: 1, completed: 2 },
+    agent: "sisyphus",
+    model: { providerID: "provider", id: "model" },
+    content,
+  }
 }
 
 function session(messages: readonly V2SessionMessage[]): Pick<Plugin.Context["session"], "context"> {
-  return { context: async ({ sessionID }) => {
-    expect(sessionID).toBe("session")
-    return [...messages]
-  } }
+  return {
+    context: async ({ sessionID }) => {
+      expect(sessionID).toBe("session")
+      return [...messages]
+    },
+  }
 }
 
 describe("native todo projection", () => {
@@ -32,12 +48,17 @@ describe("native todo projection", () => {
     // given
     let first = true
     const native: NativeTodoSession = {
-      context: async () => { throw new Error("Durable capability must not fall back to compacted context") },
+      context: async () => {
+        throw new Error("Durable capability must not fall back to compacted context")
+      },
       messages: async ({ cursor }) => {
         if (cursor === undefined) {
           if (!first) throw new Error("Restarted exhausted native paging")
           first = false
-          return { data: [assistant("answer", [{ type: "text", text: "No todos were written" }])], cursor: { next: "older" } }
+          return {
+            data: [assistant("answer", [{ type: "text", text: "No todos were written" }])],
+            cursor: { next: "older" },
+          }
         }
         expect(cursor).toBe("older")
         return { data: [], cursor: { next: null, previous: null } }
@@ -49,34 +70,56 @@ describe("native todo projection", () => {
     expect(todos).toEqual([])
   })
 
-  test.each([{ todos: [] }, { todos: [{ content: "before compaction", status: "pending" }] }])("recovers the latest durable success through older-page cursors: %j", async ({ todos }) => {
-    // given
-    const native: NativeTodoSession = {
-      context: async () => { throw new Error("Compacted context must not be used when durable messages are supported") },
-      messages: async (input) => {
-        expect(input.type).toBe("assistant")
-        if (input.cursor === undefined) {
-          expect(input.order).toBe("desc")
-          return { data: [assistant("newer", [{ type: "tool", id: "failed", name: "todowrite", time: { created: 9 },
-            state: { status: "error", input: {}, error: { type: "aborted", message: "denied" } } }])], cursor: { next: "older", previous: "newer" } }
-        }
-        expect(input.cursor).toBe("older")
-        expect(input.order).toBeUndefined()
-        return { data: [assistant("success", [completed([...todos])])], cursor: { next: "must-not-read-stale-todos" } }
-      },
-    }
-    // when
-    const result = await nativeTodos(native, "session")
-    // then
-    expect(result.map(({ content, status }) => ({ content, status }))).toEqual([...todos])
-  })
+  test.each([{ todos: [] }, { todos: [{ content: "before compaction", status: "pending" }] }])(
+    "recovers the latest durable success through older-page cursors: %j",
+    async ({ todos }) => {
+      // given
+      const native: NativeTodoSession = {
+        context: async () => {
+          throw new Error("Compacted context must not be used when durable messages are supported")
+        },
+        messages: async (input) => {
+          expect(input.type).toBe("assistant")
+          if (input.cursor === undefined) {
+            expect(input.order).toBe("desc")
+            return {
+              data: [
+                assistant("newer", [
+                  {
+                    type: "tool",
+                    id: "failed",
+                    name: "todowrite",
+                    time: { created: 9 },
+                    state: { status: "error", input: {}, error: { type: "aborted", message: "denied" } },
+                  },
+                ]),
+              ],
+              cursor: { next: "older", previous: "newer" },
+            }
+          }
+          expect(input.cursor).toBe("older")
+          expect(input.order).toBeUndefined()
+          return {
+            data: [assistant("success", [completed([...todos])])],
+            cursor: { next: "must-not-read-stale-todos" },
+          }
+        },
+      }
+      // when
+      const result = await nativeTodos(native, "session")
+      // then
+      expect(result.map(({ content, status }) => ({ content, status }))).toEqual([...todos])
+    },
+  )
 
   test("selects the last completed call in transcript and tool order, using successful metadata rather than input", async () => {
     // given
     const native = session([
       assistant("old", [completed([{ content: "old", status: "pending" }])]),
-      assistant("new", [completed([{ content: "earlier call", status: "completed" }]),
-        completed([{ content: "latest", status: "in_progress" }])]),
+      assistant("new", [
+        completed([{ content: "earlier call", status: "completed" }]),
+        completed([{ content: "latest", status: "in_progress" }]),
+      ]),
     ])
     // when
     const todos = await nativeTodos(native, "session")
@@ -87,11 +130,18 @@ describe("native todo projection", () => {
   test.each(["streaming", "running", "error"] as const)("ignores a newer %s call", async (status) => {
     // given
     const input = { todos: [{ content: "not applied", status: "completed" }] }
-    const state: Tool["state"] = status === "streaming" ? { status, input: JSON.stringify(input) }
-      : status === "running" ? { status, input, metadata: {} }
-      : { status, input, error: { type: "aborted", message: "denied" } }
-    const native = session([assistant("message", [completed([{ content: "keep", status: "pending" }]),
-      { type: "tool", id: "later", name: "todowrite", time: { created: 3 }, state }])])
+    const state: Tool["state"] =
+      status === "streaming"
+        ? { status, input: JSON.stringify(input) }
+        : status === "running"
+          ? { status, input, metadata: {} }
+          : { status, input, error: { type: "aborted", message: "denied" } }
+    const native = session([
+      assistant("message", [
+        completed([{ content: "keep", status: "pending" }]),
+        { type: "tool", id: "later", name: "todowrite", time: { created: 3 }, state },
+      ]),
+    ])
     // when
     const todos = await nativeTodos(native, "session")
     // then
@@ -100,27 +150,45 @@ describe("native todo projection", () => {
 
   test("clears the projection only for a successful empty list", async () => {
     // given
-    const native = session([assistant("old", [completed([{ content: "stale", status: "pending" }])]),
-      assistant("clear", [completed([])])])
+    const native = session([
+      assistant("old", [completed([{ content: "stale", status: "pending" }])]),
+      assistant("clear", [completed([])]),
+    ])
     // when
     const todos = await nativeTodos(native, "session")
     // then
     expect(todos).toEqual([])
   })
 
-  const unusableMetadata: { input: Parameters<typeof completed>[0] }[] = [{ input: undefined }, { input: { todos: [] } }]
-  test.each(unusableMetadata)("rejects unusable successful metadata instead of presenting a cleared list: %j", async ({ input }) => {
-    const native = session([assistant("old", [completed([{ content: "not cleared", status: "pending" }])]), assistant("bad", [completed(input)])])
-    await expect(nativeTodos(native, "session")).rejects.toBeInstanceOf(z.ZodError)
-  })
+  const unusableMetadata: { input: Parameters<typeof completed>[0] }[] = [
+    { input: undefined },
+    { input: { todos: [] } },
+  ]
+  test.each(unusableMetadata)(
+    "rejects unusable successful metadata instead of presenting a cleared list: %j",
+    async ({ input }) => {
+      const native = session([
+        assistant("old", [completed([{ content: "not cleared", status: "pending" }])]),
+        assistant("bad", [completed(input)]),
+      ])
+      await expect(nativeTodos(native, "session")).rejects.toBeInstanceOf(z.ZodError)
+    },
+  )
 
   test("normalizes unknown entries once at the native metadata boundary", async () => {
     // given
-    const native = session([assistant("message", [completed([
-      null, { content: "" }, { status: "pending" },
-      { content: "unknown status", status: "unexpected", priority: "high", id: "native-does-not-own-this" },
-      { content: "done", status: "completed" }, { content: "cancelled", status: "cancelled" },
-    ])])])
+    const native = session([
+      assistant("message", [
+        completed([
+          null,
+          { content: "" },
+          { status: "pending" },
+          { content: "unknown status", status: "unexpected", priority: "high", id: "native-does-not-own-this" },
+          { content: "done", status: "completed" },
+          { content: "cancelled", status: "cancelled" },
+        ]),
+      ]),
+    ])
     // when
     const todos = await nativeTodos(native, "session")
     // then
@@ -143,15 +211,26 @@ describe("native todo projection", () => {
     expect(after[0]).toMatchObject({ content: "after", status: "completed" })
   })
 
-  test.each(["auto", "manual"] as const)("reports unavailable history when %s compaction removes the tool from active context", async (reason) => {
-    // given
-    const native = session([assistant("message", [completed([{ content: "hidden", status: "pending" }])])])
-    expect(await nativeTodos(native, "session")).toHaveLength(1)
-    native.context = session([{ id: "compacted", type: "compaction", status: "completed", reason,
-      time: { created: 4 }, summary: "Tasks remain" }]).context
-    // when / then
-    await expect(nativeTodos(native, "session")).rejects.toBeInstanceOf(NativeTodoHistoryUnavailableError)
-  })
+  test.each(["auto", "manual"] as const)(
+    "reports unavailable history when %s compaction removes the tool from active context",
+    async (reason) => {
+      // given
+      const native = session([assistant("message", [completed([{ content: "hidden", status: "pending" }])])])
+      expect(await nativeTodos(native, "session")).toHaveLength(1)
+      native.context = session([
+        {
+          id: "compacted",
+          type: "compaction",
+          status: "completed",
+          reason,
+          time: { created: 4 },
+          summary: "Tasks remain",
+        },
+      ]).context
+      // when / then
+      await expect(nativeTodos(native, "session")).rejects.toBeInstanceOf(NativeTodoHistoryUnavailableError)
+    },
+  )
 
   test("returns an empty list when uncompacted context has no todowrite", async () => {
     // given
@@ -164,9 +243,17 @@ describe("native todo projection", () => {
 
   test("reads a new native list after a completed compaction", async () => {
     // given
-    const native = session([{ id: "compacted", type: "compaction", status: "completed", reason: "auto",
-      time: { created: 4 }, summary: "Earlier transcript" },
-    assistant("after", [completed([{ content: "current", status: "pending" }])])])
+    const native = session([
+      {
+        id: "compacted",
+        type: "compaction",
+        status: "completed",
+        reason: "auto",
+        time: { created: 4 },
+        summary: "Earlier transcript",
+      },
+      assistant("after", [completed([{ content: "current", status: "pending" }])]),
+    ])
     // when
     const todos = await nativeTodos(native, "session")
     // then
@@ -176,7 +263,11 @@ describe("native todo projection", () => {
   test("propagates context read failure rather than presenting it as a cleared list", async () => {
     // given
     const failure = new Error("context unavailable")
-    const native = { context: async () => { throw failure } }
+    const native = {
+      context: async () => {
+        throw failure
+      },
+    }
     // when / then
     await expect(nativeTodos(native, "session")).rejects.toBe(failure)
   })

@@ -14,6 +14,8 @@ export function writeFileAtomically(
   filePath: string,
   content: string,
   deps: {
+    /** false skips the fsync: for regenerable files, where only the atomic rename matters. */
+    durable?: boolean
     fsyncSync?: typeof FsyncSync
     mode?: number
     beforeRenameSync?: (tempPath: string) => void
@@ -25,11 +27,13 @@ export function writeFileAtomically(
   if (mode !== undefined) {
     chmodSync(tempPath, mode)
   }
-  const tempFileDescriptor = openSync(tempPath, "r+")
-  try {
-    tolerantFsyncSync(tempFileDescriptor, `writeFileAtomically:${filePath}`, deps.fsyncSync)
-  } finally {
-    closeSync(tempFileDescriptor)
+  if (deps.durable !== false) {
+    const tempFileDescriptor = openSync(tempPath, "r+")
+    try {
+      tolerantFsyncSync(tempFileDescriptor, `writeFileAtomically:${filePath}`, deps.fsyncSync)
+    } finally {
+      closeSync(tempFileDescriptor)
+    }
   }
 
   try {
@@ -38,8 +42,7 @@ export function writeFileAtomically(
   } catch (error) {
     const isWindows = process.platform === "win32"
     const isPermissionError =
-      error instanceof Error &&
-      (error.message.includes("EPERM") || error.message.includes("EACCES"))
+      error instanceof Error && (error.message.includes("EPERM") || error.message.includes("EACCES"))
 
     if (isWindows && isPermissionError) {
       unlinkSync(filePath)

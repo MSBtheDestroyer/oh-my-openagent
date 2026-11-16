@@ -9,17 +9,26 @@ describe("plugin factory delegation ownership", () => {
   test("host ownership boots the real pipeline without a legacy manager and disposes common resources", async () => {
     const fixture = createHostDelegationFixture()
     let managers: Managers | undefined
-    const module = createPluginModule({
-      startOmoProcessSweep: async () => {},
-      recordPluginTelemetry: () => {},
-      warmLiveServerProbe: () => {},
-      detectDuplicateOmoPlugin: () => ({ detected: false, pluginName: null, duplicatePlugins: [], allPlugins: [] }),
-      loadConfigChain: () => ({ valid: true, config: fixture.args.pluginConfig, path: null, messages: [], warnings: [] }),
-      createManagers: (args) => {
-        managers = createManagers({ ...args, deps: fixture.args.deps })
-        return managers
+    const module = createPluginModule(
+      {
+        startOmoProcessSweep: async () => {},
+        recordPluginTelemetry: () => {},
+        warmLiveServerProbe: () => {},
+        detectDuplicateOmoPlugin: () => ({ detected: false, pluginName: null, duplicatePlugins: [], allPlugins: [] }),
+        loadConfigChain: () => ({
+          valid: true,
+          config: fixture.args.pluginConfig,
+          path: null,
+          messages: [],
+          warnings: [],
+        }),
+        createManagers: (args) => {
+          managers = createManagers({ ...args, deps: fixture.args.deps })
+          return managers
+        },
       },
-    }, { delegationOwner: "host" })
+      { delegationOwner: "host" },
+    )
 
     const hooks = await module.server(fixture.ctx)
     try {
@@ -42,7 +51,13 @@ describe("plugin factory delegation ownership", () => {
       recordPluginTelemetry: () => {},
       warmLiveServerProbe: () => {},
       detectDuplicateOmoPlugin: () => ({ detected: false, pluginName: null, duplicatePlugins: [], allPlugins: [] }),
-      loadConfigChain: () => ({ valid: true, config: fixture.args.pluginConfig, path: null, messages: [], warnings: [] }),
+      loadConfigChain: () => ({
+        valid: true,
+        config: fixture.args.pluginConfig,
+        path: null,
+        messages: [],
+        warnings: [],
+      }),
       createManagers: (args) => createManagers({ ...args, deps: fixture.args.deps }),
     })
 
@@ -51,12 +66,23 @@ describe("plugin factory delegation ownership", () => {
 
   test("host teams fail with the typed unsupported error before manager acquisition", async () => {
     const fixture = createHostDelegationFixture()
-    const module = createPluginModule({
-      startOmoProcessSweep: async () => {},
-      detectDuplicateOmoPlugin: () => ({ detected: false, pluginName: null, duplicatePlugins: [], allPlugins: [] }),
-      loadConfigChain: () => ({ valid: true, config: OhMyOpenCodeConfigSchema.parse({ team_mode: { enabled: true } }), path: null, messages: [], warnings: [] }),
-      createManagers: () => { throw new Error("Unsupported host team acquired managers") },
-    }, { delegationOwner: "host" })
+    const module = createPluginModule(
+      {
+        startOmoProcessSweep: async () => {},
+        detectDuplicateOmoPlugin: () => ({ detected: false, pluginName: null, duplicatePlugins: [], allPlugins: [] }),
+        loadConfigChain: () => ({
+          valid: true,
+          config: OhMyOpenCodeConfigSchema.parse({ team_mode: { enabled: true } }),
+          path: null,
+          messages: [],
+          warnings: [],
+        }),
+        createManagers: () => {
+          throw new Error("Unsupported host team acquired managers")
+        },
+      },
+      { delegationOwner: "host" },
+    )
 
     await expect(module.server(fixture.ctx)).rejects.toBeInstanceOf(UnsupportedHostDelegationError)
   })

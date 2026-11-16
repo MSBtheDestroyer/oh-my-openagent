@@ -3,8 +3,16 @@ import type { ProbeResult } from "./contracts"
 import { evaluateMatrix, paritySucceeded, type MatrixRow } from "./matrix"
 
 describe("parity result accounting", () => {
-  const rows: readonly MatrixRow[] = [{ id: "tools", label: "Tools", kind: "runtime", probes: ["admission", "execution"] }]
-  const result = (id: string, status: ProbeResult["status"]): ProbeResult => ({ id, label: id, status, detail: `${id} receipt`, durationMs: 1 })
+  const rows: readonly MatrixRow[] = [
+    { id: "tools", label: "Tools", kind: "runtime", probes: ["admission", "execution"] },
+  ]
+  const result = (id: string, status: ProbeResult["status"]): ProbeResult => ({
+    id,
+    label: id,
+    status,
+    detail: `${id} receipt`,
+    durationMs: 1,
+  })
 
   test.each([
     ["pass", "pass", "pass"],
@@ -35,7 +43,9 @@ describe("parity result accounting", () => {
   test("retains an unsupported reason without counting it as a pass", () => {
     // given
     const reason = "Native host does not expose the required extension"
-    const unsupported: readonly MatrixRow[] = [{ id: "host-extension", label: "Host extension", kind: "unsupported", reason }]
+    const unsupported: readonly MatrixRow[] = [
+      { id: "host-extension", label: "Host extension", kind: "unsupported", reason },
+    ]
     // when
     const matrix = evaluateMatrix(unsupported, [result("admission", "pass")])
     // then
@@ -60,7 +70,9 @@ describe("parity result accounting", () => {
 
   test("rejects unsupported entries without a concrete reason", () => {
     // given
-    const unsupported: readonly MatrixRow[] = [{ id: "host-extension", label: "Host extension", kind: "unsupported", reason: " " }]
+    const unsupported: readonly MatrixRow[] = [
+      { id: "host-extension", label: "Host extension", kind: "unsupported", reason: " " },
+    ]
     // when / then
     expect(() => evaluateMatrix(unsupported, [])).toThrow("Missing unsupported reason")
   })
@@ -68,7 +80,13 @@ describe("parity result accounting", () => {
   test.each(["runtime", "matrix"] as const)("refuses a successful suite without %s checks", (empty) => {
     // given
     const results = empty === "runtime" ? [] : [result("admission", "pass")]
-    const matrix = empty === "matrix" ? [] : evaluateMatrix([{ id: "admission-row", label: "Admission", kind: "runtime", probes: ["admission"] }], [result("admission", "pass")])
+    const matrix =
+      empty === "matrix"
+        ? []
+        : evaluateMatrix(
+            [{ id: "admission-row", label: "Admission", kind: "runtime", probes: ["admission"] }],
+            [result("admission", "pass")],
+          )
     // when / then
     expect(paritySucceeded(results, matrix)).toBe(false)
   })

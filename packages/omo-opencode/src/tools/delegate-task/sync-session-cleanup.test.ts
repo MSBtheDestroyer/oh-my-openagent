@@ -75,7 +75,9 @@ describe("sync-session-cleanup", () => {
     const retired = Promise.withResolvers<string>()
 
     //#when
-    scheduleSyncSessionCleanup("ses_sscd_a", 120000, (id) => { retired.resolve(id) })
+    scheduleSyncSessionCleanup("ses_sscd_a", 120000, (id) => {
+      retired.resolve(id)
+    })
 
     //#then - exactly one fake timer is recorded carrying that delay
     expect(fakeTimers.timers).toHaveLength(1)
@@ -123,7 +125,10 @@ describe("sync-session-cleanup", () => {
     const teardown = Promise.withResolvers<void>()
     const entered = Promise.withResolvers<void>()
     handedBackSyncSessions.add("ses_sscd_d")
-    scheduleSyncSessionCleanup("ses_sscd_d", 120000, async () => { entered.resolve(); await teardown.promise })
+    scheduleSyncSessionCleanup("ses_sscd_d", 120000, async () => {
+      entered.resolve()
+      await teardown.promise
+    })
 
     //#when
     fakeTimers.timers[0]?.callback()

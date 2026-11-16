@@ -32,30 +32,70 @@ function fixture() {
   const admitted: Parameters<Parameters<typeof registerNativeIdle>[0]["session"]["synthetic"]>[0][] = []
   let messages: readonly V2SessionMessage[] = []
   let stopped = false
-  const ctx = { session: {
-    get: client.session.get,
-    context: async () => [...messages],
-    synthetic: async (input) => {
-      admitted.push(input)
-      return { id: "synthetic", sessionID: input.sessionID, type: "synthetic" as const,
-        time: { created: 3 }, delivery: "queue" as const, payload: { text: input.text } }
+  const ctx = {
+    session: {
+      get: client.session.get,
+      context: async () => [...messages],
+      synthetic: async (input) => {
+        admitted.push(input)
+        return {
+          id: "synthetic",
+          sessionID: input.sessionID,
+          type: "synthetic" as const,
+          time: { created: 3 },
+          delivery: "queue" as const,
+          payload: { text: input.text },
+        }
+      },
+      hook: async (_name, callback) => {
+        callbacks.add(callback)
+        return {
+          dispose: async () => {
+            callbacks.delete(callback)
+          },
+        }
+      },
     },
-    hook: async (_name, callback) => {
-      callbacks.add(callback)
-      return { dispose: async () => { callbacks.delete(callback) } }
+  } satisfies Parameters<typeof registerNativeIdle>[0]
+  const input = unsafeTestValue<PluginInput>({
+    directory: "/scratch/project",
+    client: {
+      session: {
+        get: async () => ({ data: await ctx.session.get({ sessionID: "session" }) }),
+        todo: async () => ({ data: await nativeTodos(ctx.session, "session") }),
+      },
     },
-  } } satisfies Parameters<typeof registerNativeIdle>[0]
-  const input = unsafeTestValue<PluginInput>({ directory: "/scratch/project", client: { session: {
-    get: async () => ({ data: await ctx.session.get({ sessionID: "session" }) }),
-    todo: async () => ({ data: await nativeTodos(ctx.session, "session") }),
-  } } })
+  })
   const setTodos = (statuses: readonly string[], content = "task") => {
-    messages = [{ ...assistantMessage, content: [{ type: "tool", id: "todo", name: "todowrite", time: { created: 1 },
-      state: { status: "completed", input: {}, metadata: { todos: statuses.map((status, index) => ({ content: `${content} ${index}`, status })) },
-        content: [{ type: "text", text: "Todos updated" }] } }] }]
+    messages = [
+      {
+        ...assistantMessage,
+        content: [
+          {
+            type: "tool",
+            id: "todo",
+            name: "todowrite",
+            time: { created: 1 },
+            state: {
+              status: "completed",
+              input: {},
+              metadata: { todos: statuses.map((status, index) => ({ content: `${content} ${index}`, status })) },
+              content: [{ type: "text", text: "Todos updated" }],
+            },
+          },
+        ],
+      },
+    ]
   }
   setTodos(["pending", "in_progress"])
-  return { ctx, input, admitted, setTodos, stop: () => { stopped = true },
+  return {
+    ctx,
+    input,
+    admitted,
+    setTodos,
+    stop: () => {
+      stopped = true
+    },
     idle: async (background: SessionIdle["background"] = []) => {
       for (const callback of callbacks) await callback({ sessionID, background })
     },
@@ -74,11 +114,23 @@ function authority() {
   process.env.VIBETERM_MACHINE_ID = "machine"
   Reflect.set(globalThis, authorityKey, {
     binding,
-    capture: (_id: string, plan: unknown) => active ? { binding: binding(), plan } : null,
+    capture: (_id: string, plan: unknown) => (active ? { binding: binding(), plan } : null),
     validate: () => active,
-    stop: () => { active = false }, freshPlan: () => { generation = "two" },
+    stop: () => {
+      active = false
+    },
+    freshPlan: () => {
+      generation = "two"
+    },
   })
-  return { revoke: () => { active = false }, fresh: () => { generation = "two" } }
+  return {
+    revoke: () => {
+      active = false
+    },
+    fresh: () => {
+      generation = "two"
+    },
+  }
 }
 
 describe("native todo idle continuation", () => {
@@ -97,16 +149,19 @@ describe("native todo idle continuation", () => {
     expect(f.admitted[0]?.text).not.toContain("task 2")
   })
 
-  test.each([{ statuses: [] }, { statuses: ["completed", "cancelled"] }])("stays quiet for finished todos: %j", async ({ statuses }) => {
-    // given
-    const f = fixture()
-    f.setTodos(statuses)
-    await f.register()
-    // when
-    await f.idle()
-    // then
-    expect(f.admitted).toEqual([])
-  })
+  test.each([{ statuses: [] }, { statuses: ["completed", "cancelled"] }])(
+    "stays quiet for finished todos: %j",
+    async ({ statuses }) => {
+      // given
+      const f = fixture()
+      f.setTodos(statuses)
+      await f.register()
+      // when
+      await f.idle()
+      // then
+      expect(f.admitted).toEqual([])
+    },
+  )
 
   test.each(["disabled", "stopped", "disposed"] as const)("stays quiet when %s", async (guard) => {
     // given
@@ -136,7 +191,8 @@ describe("native todo idle continuation", () => {
     const f = fixture()
     f.ctx.session.get = async () => ({ ...sessionInfo, agent: undefined })
     const context = f.ctx.session.context
-    f.ctx.session.context = async () => (await context()).map((message) => message.type === "assistant" ? { ...message, agent: "plan" } : message)
+    f.ctx.session.context = async () =>
+      (await context()).map((message) => (message.type === "assistant" ? { ...message, agent: "plan" } : message))
     await f.register()
     // when
     await f.idle()
@@ -190,7 +246,10 @@ describe("native todo idle continuation", () => {
     // given
     const f = fixture()
     const context = f.ctx.session.context
-    f.ctx.session.context = async () => { f.stop(); return context() }
+    f.ctx.session.context = async () => {
+      f.stop()
+      return context()
+    }
     await f.register()
     // when
     await f.idle()
@@ -204,7 +263,16 @@ describe("native todo idle continuation", () => {
     await f.register()
     await f.idle()
     const context = f.ctx.session.context
-    f.ctx.session.context = async () => [{ type: "compaction", id: "compact", status: "completed", reason: "auto", time: { created: 5 }, summary: "Work remains" }]
+    f.ctx.session.context = async () => [
+      {
+        type: "compaction",
+        id: "compact",
+        status: "completed",
+        reason: "auto",
+        time: { created: 5 },
+        summary: "Work remains",
+      },
+    ]
     // when
     await f.idle()
     f.ctx.session.context = context
@@ -213,26 +281,36 @@ describe("native todo idle continuation", () => {
     expect(f.admitted).toHaveLength(1)
   })
 
-  test.each(["missing", "revoked", "wrong-machine", "copied-policy"] as const)("rejects %s host continuation authority", async (guard) => {
-    // given
-    const f = fixture()
-    if (guard === "missing") process.env.VIBETERM_MACHINE_ID = "machine"
-    if (guard === "revoked") authority().revoke()
-    if (guard === "wrong-machine") { authority(); process.env.VIBETERM_MACHINE_ID = "other" }
-    if (guard === "copied-policy") f.ctx.session.get = async () => ({ ...sessionInfo, metadata: { vibeterm: { continuationAuthority: {} } } })
-    await f.register()
-    // when
-    await f.idle()
-    // then
-    expect(f.admitted).toEqual([])
-  })
+  test.each(["missing", "revoked", "wrong-machine", "copied-policy"] as const)(
+    "rejects %s host continuation authority",
+    async (guard) => {
+      // given
+      const f = fixture()
+      if (guard === "missing") process.env.VIBETERM_MACHINE_ID = "machine"
+      if (guard === "revoked") authority().revoke()
+      if (guard === "wrong-machine") {
+        authority()
+        process.env.VIBETERM_MACHINE_ID = "other"
+      }
+      if (guard === "copied-policy")
+        f.ctx.session.get = async () => ({ ...sessionInfo, metadata: { vibeterm: { continuationAuthority: {} } } })
+      await f.register()
+      // when
+      await f.idle()
+      // then
+      expect(f.admitted).toEqual([])
+    },
+  )
 
   test("rechecks a scoped permit before native admission", async () => {
     // given
     const f = fixture()
     const scope = authority()
     const todo = f.input.client.session.todo
-    f.input.client.session.todo = (...args) => { scope.revoke(); return todo(...args) }
+    f.input.client.session.todo = (...args) => {
+      scope.revoke()
+      return todo(...args)
+    }
     await f.register()
     // when
     await f.idle()
@@ -270,7 +348,9 @@ describe("native todo idle continuation", () => {
     const f = fixture()
     const synthetic = f.ctx.session.synthetic
     const failure = new Error("admission failed")
-    f.ctx.session.synthetic = async () => { throw failure }
+    f.ctx.session.synthetic = async () => {
+      throw failure
+    }
     await f.register()
     await expect(f.idle()).rejects.toBe(failure)
     f.ctx.session.synthetic = synthetic
