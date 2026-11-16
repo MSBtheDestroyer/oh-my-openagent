@@ -205,7 +205,7 @@ describe("category settings at provider request boundaries", () => {
                   tryCompleteTask: (task: BackgroundTask, source: string) => Promise<boolean>
                 }>(manager).tryCompleteTask(runningTask, "test"),
               ).toBe(true)
-              releasePromptAsyncReservation(sessionID, "model-suggestion-retry")
+              releasePromptAsyncReservation(sessionID, "background-agent-launch")
               dispatched = Promise.withResolvers<Dispatch>()
               await manager.resume({
                 sessionId: sessionID,
