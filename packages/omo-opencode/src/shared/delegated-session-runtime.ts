@@ -4,6 +4,7 @@ import {
   clearBackgroundOutputConsumptionsForTaskSession,
 } from "./background-output-consumption"
 import { clearDelegatedChildSessionBootstrap } from "./delegated-child-session-bootstrap"
+import { ProviderPinRegistry } from "./provider-pin-registry"
 import { SessionCategoryRegistry } from "./session-category-registry"
 import { resetMessageCursor } from "./session-cursor"
 import { clearSessionModel } from "./session-model-state"
@@ -16,6 +17,7 @@ export function releaseDelegatedSessionRuntime(sessionID: string): void {
   syncSubagentSessions.delete(sessionID)
   clearDelegatedChildSessionBootstrap(sessionID)
   SessionCategoryRegistry.remove(sessionID)
+  ProviderPinRegistry.remove(sessionID)
   resetMessageCursor(sessionID)
   clearBackgroundOutputConsumptionsForParentSession(sessionID)
   clearBackgroundOutputConsumptionsForTaskSession(sessionID)
