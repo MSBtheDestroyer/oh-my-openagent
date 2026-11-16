@@ -77,9 +77,10 @@ export function createCoreTools(args: {
         directory: ctx.directory,
         userCategories: pluginConfig.categories,
         agentOverrides: pluginConfig.agents,
+        providerModels: pluginConfig.provider_models,
         loadCurrentModelConfig: () => {
           const current = loadPluginConfig(ctx.directory, process.env)
-          return { agents: current.agents, categories: current.categories }
+          return { agents: current.agents, categories: current.categories, provider_models: current.provider_models }
         },
         gitMasterConfig: pluginConfig.git_master,
         sisyphusJuniorModel: getSisyphusJuniorModelOverride(pluginConfig.agents?.["sisyphus-junior"]),
@@ -163,7 +164,10 @@ export function createCoreTools(args: {
     ...(callOmoAgent ? { call_omo_agent: callOmoAgent } : {}),
   }
   if (isMultimodalLookerEnabled) {
-    tools.look_at = factories.createLookAt(ctx)
+    tools.look_at = factories.createLookAt(ctx, {
+      providerModels: pluginConfig.provider_models,
+      loadProviderModels: () => loadPluginConfig(ctx.directory, process.env).provider_models,
+    })
   }
   if (delegateTask) tools.task = delegateTask
   tools.skill_mcp = skillMcpTool

@@ -24,7 +24,7 @@ function getConfiguredModel(entry: string | { model: string } | undefined): stri
   return typeof entry === "string" ? entry : entry?.model
 }
 
-function resolveCategoryPromptAppendForModel(
+export function resolveCategoryPromptAppendForModel(
   categoryName: string,
   actualModel: string | undefined,
   staticPromptAppend: string,
@@ -53,7 +53,7 @@ export interface CategoryResolutionResult {
   error?: string
 }
 
-function categoryResolutionError(error: string): CategoryResolutionResult {
+export function categoryResolutionError(error: string): CategoryResolutionResult {
   return {
     agentToUse: "",
     categoryModel: undefined,

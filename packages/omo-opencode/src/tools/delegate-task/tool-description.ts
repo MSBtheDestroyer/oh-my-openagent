@@ -1,5 +1,6 @@
 import type { AvailableCategory, AvailableSkill } from "../../agents/dynamic-agent-prompt-builder"
 import { mergeCategories } from "../../shared/merge-categories"
+import { hasProviderModelPins } from "../../shared/provider-model-pin"
 import { CATEGORY_CALLER_GUIDANCE } from "./builtin-categories"
 import { CATEGORY_DESCRIPTIONS } from "./constants"
 import type { DelegateTaskToolOptions } from "./types"
@@ -13,7 +14,7 @@ export interface DelegateTaskPresentation {
 
 type DelegateTaskPresentationOptions = Pick<
   DelegateTaskToolOptions,
-  "availableCategories" | "availableSkills" | "userCategories"
+  "availableCategories" | "availableSkills" | "userCategories" | "providerModels"
 >
 
 export function createDelegateTaskPresentation(options: DelegateTaskPresentationOptions): DelegateTaskPresentation {
@@ -48,6 +49,10 @@ export function createDelegateTaskPresentation(options: DelegateTaskPresentation
     })
     .join("\n")
 
+  const providerLine = hasProviderModelPins(options.providerModels)
+    ? `\n  - provider: "openai" or "anthropic". Runs the child on that provider's configured model for the category or subagent_type instead of default routing, with no fallback to another provider; the call fails if no model is configured for it. Omit for default routing.`
+    : ""
+
   const description = `Spawn agent task with category-based or direct agent selection.
 
   ⚠️  CRITICAL: You MUST provide EITHER category OR subagent_type. Omitting BOTH will FAIL.
@@ -81,7 +86,7 @@ export function createDelegateTaskPresentation(options: DelegateTaskPresentation
   - run_in_background: Default true: returns a background task ID like \`bg_...\` at once, and a notification with the child's final answer arrives when it finishes. false blocks this response until the child finishes; use it only for a short child whose result gates your very next call.
   - wake: When a finished background child reports. "each" (default): every finished child starts your next turn with its result; children finishing close together share one turn. "none": no turn is started; the result waits for your next turn.
   - items + split: Fan-out. items is a list of work items; split (default: one per item) is how many background children share them, each getting prompt plus its contiguous slice (split=2 over A..J gives A-E and F-J). All children use the same category/subagent_type/load_skills. Unless wake is passed, the call reports once, with every child's result, when the last child finishes. Several unrelated tasks are still several task calls in one message.
-  - task_id: Continuation session id (\`ses_...\`) from task metadata. Continues the same subagent session with FULL CONTEXT PRESERVED; not the background task id (\`bg_...\`).
+  - task_id: Continuation session id (\`ses_...\`) from task metadata. Continues the same subagent session with FULL CONTEXT PRESERVED; not the background task id (\`bg_...\`).${providerLine}
 
   **WHEN TO USE task_id:**
   - Task failed/incomplete → \`task(task_id="ses_...", prompt="fix: [specific issue]")\`
