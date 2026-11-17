@@ -1,13 +1,21 @@
-import { afterEach, describe, expect, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { restoreEnvironment } from "../../../../../test-support/environment-integrity"
 import { clearPluginComponentsCache, loadAllPluginComponents } from "./loader"
 
 describe("plugin components by session location", () => {
   const directories: string[] = []
+  const originalEnv = { ...process.env }
+
+  beforeEach(() => {
+    delete process.env.OPENCODE_DISABLE_CLAUDE_CODE
+    delete process.env.OPENCODE_DISABLE_CLAUDE_CODE_PLUGINS
+  })
 
   afterEach(() => {
+    restoreEnvironment(originalEnv)
     clearPluginComponentsCache()
     for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true })
   })
