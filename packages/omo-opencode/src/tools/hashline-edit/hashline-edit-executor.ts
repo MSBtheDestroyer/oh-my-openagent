@@ -1,4 +1,5 @@
 import type { ToolContext } from "@opencode-ai/plugin/tool"
+import { resolve } from "node:path"
 import { publishToolMetadata } from "../../features/tool-metadata-store"
 import { bunFile, bunWrite } from "../../shared/bun-file-shim"
 import { applyHashlineEditsWithReport } from "./edit-operations"
@@ -83,8 +84,10 @@ export async function executeHashlineEditTool(
 ): Promise<string> {
   try {
     const metadataContext = context as ToolContextWithMetadata
-    const filePath = args.filePath
-    const { delete: deleteMode, rename } = args
+    const directory = context.directory ?? pluginCtx?.directory ?? process.cwd()
+    const filePath = resolve(directory, args.filePath)
+    const rename = args.rename ? resolve(directory, args.rename) : undefined
+    const { delete: deleteMode } = args
 
     if (deleteMode && rename) {
       return "Error: delete and rename cannot be used together"
@@ -130,12 +133,12 @@ export async function executeHashlineEditTool(
     await bunWrite(filePath, writeContent)
 
     if (pluginCtx?.client) {
-      await runFormattersForFile(pluginCtx.client as FormatterClient, context.directory, filePath)
+      await runFormattersForFile(pluginCtx.client as FormatterClient, directory, filePath)
       const formattedContent = Buffer.from(await bunFile(filePath).arrayBuffer()).toString("utf8")
       if (formattedContent !== writeContent) {
         const formattedEnvelope = canonicalizeFileText(formattedContent)
         const formattedMeta = buildSuccessMeta(
-          filePath,
+          rename ?? filePath,
           oldEnvelope.content,
           formattedEnvelope.content,
           applyResult.noopEdits,

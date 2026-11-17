@@ -41,7 +41,7 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
         disabledSkills: options?.disabledSkills,
         browserProvider: options?.browserProvider,
         teamModeEnabled: options?.teamModeEnabled,
-        directory: options.directory,
+        directory: context?.directory ?? options.directory,
       })) ?? []
     return options.skills ? [...options.skills] : discovered
   }
@@ -69,11 +69,11 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
     return allSkills
   }
 
-  const getCommands = (): CommandInfo[] => {
+  const getCommands = (directory = options.directory): CommandInfo[] => {
     if (options.commands) return [...options.commands]
 
     return (
-      commandDiscovery.discoverCommandsSync(undefined, {
+      commandDiscovery.discoverCommandsSync(directory, {
         pluginsEnabled: options.pluginsEnabled,
         enabledPluginsOverride: options.enabledPluginsOverride,
       }) ?? []
@@ -151,7 +151,7 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
     },
     async execute(args: SkillArgs, ctx?: ToolContext) {
       const skills = await getBaseSkills(ctx)
-      const commands = getCommands()
+      const commands = getCommands(ctx?.directory ?? options.directory)
 
       const requestedName = args.name.replace(/^\//, "")
       let matchedSkill = matchSkillByName(skills, requestedName)
@@ -188,7 +188,9 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
           body = injectGitMasterConfig(body, options.gitMasterConfig)
         }
 
-        const dir = matchedSkill.path ? dirname(matchedSkill.path) : matchedSkill.resolvedPath || process.cwd()
+        const dir = matchedSkill.path
+          ? dirname(matchedSkill.path)
+          : matchedSkill.resolvedPath || ctx?.directory || options.directory || process.cwd()
 
         const output = [`## Skill: ${matchedSkill.name}`, "", `**Base directory**: ${dir}`, "", body]
 
@@ -216,7 +218,7 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
       const matchedCommand = matchCommandByName(commands, requestedName)
 
       if (matchedCommand) {
-        return await formatLoadedCommand(matchedCommand, args.user_message)
+        return await formatLoadedCommand(matchedCommand, args.user_message, ctx?.directory ?? options.directory)
       }
 
       const partialMatches = findPartialMatches(skills, commands, requestedName)

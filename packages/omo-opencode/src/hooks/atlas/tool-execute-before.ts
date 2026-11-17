@@ -118,7 +118,7 @@ export function createToolExecuteBeforeHandler(input: {
           ? resolveBoulderPlanPath(ctx.directory, state)
           : null
 
-      if (planPath && resolve(filePath) === resolve(planPath) && pendingPlanSnapshots) {
+      if (planPath && resolve(ctx.directory, filePath) === resolve(ctx.directory, planPath) && pendingPlanSnapshots) {
         try {
           if (existsSync(planPath)) {
             pendingPlanSnapshots.set(toolInput.callID, readFileSync(planPath, "utf-8"))

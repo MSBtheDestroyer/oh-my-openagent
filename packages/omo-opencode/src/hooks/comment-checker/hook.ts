@@ -37,6 +37,7 @@ export function createCommentCheckerHooks(
     processWithCli: typeof processWithCli
     processApplyPatchEditsWithCli: typeof processApplyPatchEditsWithCli
   },
+  directory: string = process.cwd(),
 ) {
   const runner = cliRunner ?? {
     initializeCommentCheckerCli,
@@ -142,6 +143,7 @@ export function createCommentCheckerHooks(
             cliPath,
             config?.custom_prompt,
             debugLog,
+            directory,
           )
         } catch (err) {
           debugLog("apply_patch comment check failed:", err)
@@ -165,7 +167,7 @@ export function createCommentCheckerHooks(
         }
 
         debugLog("using CLI:", cliPath)
-        await runner.processWithCli(input, pendingCall, output, cliPath, config?.custom_prompt, debugLog)
+        await runner.processWithCli({ ...input, directory }, pendingCall, output, cliPath, config?.custom_prompt, debugLog)
       } catch (err) {
         debugLog("tool.execute.after failed:", err)
       }

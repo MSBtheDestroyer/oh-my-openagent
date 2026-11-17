@@ -3,7 +3,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, relative } from "node:path"
 import type { PluginInput } from "@opencode-ai/plugin"
 import type { Project } from "@opencode-ai/sdk"
 import { readBoulderState, writeBoulderState } from "../../features/boulder-state"
@@ -227,12 +227,14 @@ describe("createToolExecuteAfterHandler task timers", () => {
     expect(typeof taskSession?.elapsed_ms).toBe("number")
   })
 
-  it("ends task timer when plan checkbox flips to checked via edit tool", async () => {
+  it("ends task timer for a session-relative plan edit when engine cwd differs", async () => {
     // given
     const parentSessionID = "ses_parent_3"
     const planDirectory = join(testDirectory, ".omo", "plans")
     mkdirSync(planDirectory, { recursive: true })
     const planPath = join(planDirectory, "task-timer-edit-plan.md")
+    const relativePlanPath = relative(testDirectory, planPath)
+    expect(testDirectory).not.toBe(process.cwd())
     writeFileSync(planPath, "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n", "utf-8")
     writeBoulderState(testDirectory, {
       schema_version: 2,
@@ -270,7 +272,7 @@ describe("createToolExecuteAfterHandler task timers", () => {
       { tool: "edit", sessionID: parentSessionID, callID: "call-task-timer-edit-1" },
       {
         args: {
-          filePath: planPath,
+          filePath: relativePlanPath,
           oldString: "- [ ] 1. Implement auth flow",
           newString: "- [x] 1. Implement auth flow",
         },
@@ -286,7 +288,7 @@ describe("createToolExecuteAfterHandler task timers", () => {
         title: "Edit",
         output: "Updated file",
         metadata: {
-          filePath: planPath,
+          filePath: relativePlanPath,
         },
       },
     )

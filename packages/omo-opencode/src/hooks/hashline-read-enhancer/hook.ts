@@ -1,4 +1,5 @@
 import type { PluginInput } from "@opencode-ai/plugin"
+import { resolve } from "node:path"
 import { bunFile } from "../../shared/bun-file-shim"
 import { computeLineHash } from "../../tools/hashline-edit/hash-computation"
 
@@ -153,7 +154,7 @@ function extractLineCount(metadata: unknown): number | undefined {
   return undefined
 }
 
-async function appendWriteHashlineOutput(output: { output: string; metadata: unknown }): Promise<void> {
+async function appendWriteHashlineOutput(output: { output: string; metadata: unknown }, directory: string): Promise<void> {
   if (output.output.startsWith(WRITE_SUCCESS_MARKER)) {
     return
   }
@@ -174,7 +175,7 @@ async function appendWriteHashlineOutput(output: { output: string; metadata: unk
     return
   }
 
-  const file = bunFile(filePath)
+  const file = bunFile(resolve(directory, filePath))
   if (!(await file.exists())) {
     return
   }
@@ -184,7 +185,7 @@ async function appendWriteHashlineOutput(output: { output: string; metadata: unk
   output.output = `${WRITE_SUCCESS_MARKER} ${lineCount} lines written.`
 }
 
-export function createHashlineReadEnhancerHook(_ctx: PluginInput, config: HashlineReadEnhancerConfig) {
+export function createHashlineReadEnhancerHook(ctx: PluginInput, config: HashlineReadEnhancerConfig) {
   return {
     "tool.execute.after": async (
       input: { tool: string; sessionID: string; callID: string },
@@ -192,7 +193,7 @@ export function createHashlineReadEnhancerHook(_ctx: PluginInput, config: Hashli
     ) => {
       if (!isReadTool(input.tool)) {
         if (isWriteTool(input.tool) && typeof output.output === "string" && shouldProcess(config)) {
-          await appendWriteHashlineOutput(output)
+          await appendWriteHashlineOutput(output, ctx.directory)
         }
         return
       }

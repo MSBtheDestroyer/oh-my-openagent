@@ -1,6 +1,9 @@
 /// <reference types="bun-types" />
 
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import * as builtinCommands from "../features/builtin-commands"
 import * as commandLoader from "../features/claude-code-command-loader"
 import * as mcpLoader from "../features/claude-code-mcp-loader"
@@ -86,6 +89,26 @@ describe("applyCommandConfig", () => {
     loadOpencodeProjectSkillsSpy.mockRestore()
     loadProjectAgentsSkillsSpy.mockRestore()
     loadGlobalAgentsSkillsSpy.mockRestore()
+  })
+
+  test("suppresses a builtin MCP command using the session project's MCP declarations", async () => {
+    // given
+    getSystemMcpServerNamesSpy.mockRestore()
+    const directory = mkdtempSync(join(tmpdir(), "omo-command-mcp-location-"))
+    writeFileSync(join(directory, ".mcp.json"), JSON.stringify({
+      mcpServers: { playwright: { command: "session-playwright" } },
+    }))
+    const config: Record<string, unknown> = {}
+    expect(directory).not.toBe(process.cwd())
+    try {
+      // when
+      await applyCommandConfig({ config, pluginConfig: createPluginConfig(), ctx: { directory }, pluginComponents: createPluginComponents() })
+
+      // then
+      expect(config.command).not.toHaveProperty("playwright")
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
   })
 
   test("includes .agents skills in command config", async () => {

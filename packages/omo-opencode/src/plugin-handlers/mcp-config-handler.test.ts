@@ -2,6 +2,9 @@
 
 import { describe, test, expect, spyOn, beforeEach, afterEach } from "bun:test"
 import type { OhMyOpenCodeConfig } from "../config"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import * as mcpLoader from "../features/claude-code-mcp-loader"
 import * as mcpModule from "../mcp"
@@ -45,6 +48,28 @@ const EMPTY_PLUGIN_COMPONENTS = {
 const TEST_CTX = { directory: "/workspace/project" }
 
 describe("applyMcpConfig", () => {
+  test("loads project MCPs from the session directory while the engine cwd differs", async () => {
+    // given
+    loadMcpConfigsSpy.mockRestore()
+    const directory = mkdtempSync(join(tmpdir(), "omo-mcp-session-"))
+    writeFileSync(join(directory, ".mcp.json"), JSON.stringify({
+      mcpServers: { sessionOnly: { command: "session-server" } },
+    }))
+    const config: Record<string, unknown> = {}
+    try {
+      expect(directory).not.toBe(process.cwd())
+
+      // when
+      const { applyMcpConfig } = await import("./mcp-config-handler")
+      await applyMcpConfig({ config, ctx: { directory }, pluginConfig: createPluginConfig(), pluginComponents: EMPTY_PLUGIN_COMPONENTS })
+
+      // then
+      expect(config.mcp).toMatchObject({ sessionOnly: { type: "local", command: ["session-server"] } })
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
   test("preserves enabled:false from user config after merge with .mcp.json MCPs", async () => {
     //#given
     const userMcp = {
@@ -118,7 +143,7 @@ describe("applyMcpConfig", () => {
     await applyMcpConfig({ config, ctx: TEST_CTX, pluginConfig, pluginComponents: EMPTY_PLUGIN_COMPONENTS })
 
     //#then
-    expect(loadMcpConfigsSpy).toHaveBeenCalledWith(["firecrawl", "exa"])
+    expect(loadMcpConfigsSpy).toHaveBeenCalledWith(["firecrawl", "exa"], { cwd: TEST_CTX.directory })
   })
 
   test("works when no user MCPs have enabled:false", async () => {

@@ -40,11 +40,11 @@ async function handleCreate(
   args: Record<string, unknown>,
   config: Partial<OhMyOpenCodeConfig>,
   ctx: PluginInput | undefined,
-  context: { sessionID: string },
+  context: { sessionID: string; directory?: string },
 ): Promise<string> {
   try {
     const validatedArgs = TaskCreateInputSchema.parse(args)
-    const taskDir = getTaskDir(config)
+    const taskDir = getTaskDir(config, context.directory ?? ctx?.directory)
     const lock = await acquireLock(taskDir)
 
     if (!lock.acquired) {

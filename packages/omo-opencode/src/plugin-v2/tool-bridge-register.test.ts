@@ -1,8 +1,10 @@
 /// <reference types="bun-types" />
 import { describe, expect, test } from "bun:test"
-import { dirname } from "node:path"
+import { dirname, join } from "node:path"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { fileURLToPath } from "node:url"
-import { Agent } from "@opencode/plugin"
+import { Agent, Location } from "@opencode/plugin"
 import { AssertInput } from "@opencode/plugin/permission"
 import { CallID, type ToolContext, type ToolEditor } from "@opencode/plugin/promise/tool"
 import { z } from "zod"
@@ -20,11 +22,11 @@ function unused(): never {
   throw new Error("Unexpected fixture domain access")
 }
 
-async function registeredTool(definition: Parameters<typeof registerV1Tools>[1][string]) {
+async function registeredTool(definition: Parameters<typeof registerV1Tools>[1][string], sessionLocation = location) {
   const tools: Parameters<ToolEditor["add"]>[0][] = []
   await registerV1Tools(
     {
-      location,
+      location: sessionLocation,
       permission: { assert: async () => {}, list: unused, get: unused, reply: unused, hook: unused },
       tool: {
         list: unused,
@@ -61,6 +63,44 @@ const context: Omit<ToolContext, "progress"> = {
 }
 
 describe("v1 tool metadata at the native JSON boundary", () => {
+  test("executes tools in the linked session checkout instead of the engine or canonical checkout", async () => {
+    // given
+    const root = mkdtempSync(join(tmpdir(), "omo-tool-bridge-location-"))
+    const linked = join(root, "linked")
+    const main = join(root, "main")
+    const directory = join(linked, "sub")
+    mkdirSync(directory, { recursive: true })
+    mkdirSync(main)
+    writeFileSync(join(linked, "marker"), "linked-marker")
+    writeFileSync(join(main, "marker"), "main-marker")
+    const sessionLocation = new Location.Info({
+      directory: Location.Info.fields.directory.make(directory),
+      project: {
+        id: location.project.id,
+        directory: Location.Info.fields.project.fields.directory.make(linked),
+        canonical: Location.Info.fields.project.fields.canonical.make(main),
+      },
+    })
+    expect(directory).not.toBe(process.cwd())
+    try {
+      const tool = await registeredTool({
+        description: "Location fixture", args: {},
+        execute: async (_input, legacy) => JSON.stringify({
+          directory: legacy.directory,
+          marker: readFileSync(join(legacy.worktree, "marker"), "utf8"),
+        }),
+      }, sessionLocation)
+
+      // when
+      const result = await tool.execute({}, { ...context, progress: async () => {} })
+
+      // then
+      expect(result).toEqual({ content: JSON.stringify({ directory, marker: "linked-marker" }) })
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   test("preserves JSON metadata and omits undefined object members in progress and terminal results", async () => {
     // given
     const metadata = {

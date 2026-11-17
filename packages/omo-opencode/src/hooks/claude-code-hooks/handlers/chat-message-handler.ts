@@ -29,8 +29,8 @@ export function createChatMessageHandler(ctx: PluginInput, config: PluginConfig,
       return
     }
 
-    const claudeConfig = await loadClaudeHooksConfig()
-    const extendedConfig = await loadPluginExtendedConfig()
+    const claudeConfig = await loadClaudeHooksConfig(undefined, ctx.directory)
+    const extendedConfig = await loadPluginExtendedConfig(ctx.directory)
 
     const textParts = output.parts.filter((p) => p.type === "text" && p.text)
     const prompt = textParts.map((p) => p.text ?? "").join("\n")

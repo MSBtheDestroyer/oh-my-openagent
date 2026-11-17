@@ -79,8 +79,8 @@ function discoverCommandsFromDir(commandsDir: string, scope: CommandScope, prefi
   return commands
 }
 
-function discoverPluginCommands(options?: CommandDiscoveryOptions): CommandInfo[] {
-  const pluginDefinitions = discoverPluginCommandDefinitions(options)
+function discoverPluginCommands(directory: string, options?: CommandDiscoveryOptions): CommandInfo[] {
+  const pluginDefinitions = discoverPluginCommandDefinitions({ ...options, directory })
 
   return Object.entries(pluginDefinitions).map(([name, definition]) => ({
     name,
@@ -126,7 +126,7 @@ export function discoverCommandsSync(directory?: string, options?: CommandDiscov
   const opencodeProjectCommands = opencodeProjectDirs.flatMap((commandsDir) =>
     discoverCommandsFromDir(commandsDir, "opencode-project"),
   )
-  const pluginCommands = discoverPluginCommands(options)
+  const pluginCommands = discoverPluginCommands(directory ?? process.cwd(), options)
 
   const builtinCommandsMap = loadBuiltinCommands()
   const builtinCommands: CommandInfo[] = Object.values(builtinCommandsMap).map((command) => ({

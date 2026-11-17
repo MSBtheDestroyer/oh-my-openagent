@@ -129,10 +129,10 @@ export function createConfigHandler(deps: ConfigHandlerDeps) {
     })
     clearFormatterCache()
 
-    const pluginComponents = await loadPluginComponents({ pluginConfig })
+    const pluginComponents = await loadPluginComponents({ pluginConfig, directory: ctx.directory })
     const pluginComponentsLoadFailed = pluginComponents.retryableLoadFailure === true
 
-    applyHookConfig({ pluginComponents })
+    applyHookConfig({ pluginComponents, directory: ctx.directory })
 
     const agentCacheKey = createAgentConfigCacheKey(config)
     let agentResult: Record<string, unknown>

@@ -10,16 +10,16 @@ function ignoreClaudeTaskStorageError(error: unknown): void {
   throw error
 }
 
-export function getTaskDir(config: Partial<OhMyOpenCodeConfig> = {}): string {
+export function getTaskDir(config: Partial<OhMyOpenCodeConfig> = {}, directory: string = process.cwd()): string {
   const tasksConfig = config.sisyphus?.tasks
   const storagePath = tasksConfig?.storage_path
 
   if (storagePath) {
-    return isAbsolute(storagePath) ? storagePath : join(process.cwd(), storagePath)
+    return isAbsolute(storagePath) ? storagePath : join(directory, storagePath)
   }
 
   const configDir = getOpenCodeConfigDir({ binary: "opencode" })
-  const listId = resolveTaskListId(config)
+  const listId = resolveTaskListId(config, directory)
   return join(configDir, "tasks", listId)
 }
 
@@ -27,7 +27,7 @@ export function sanitizePathSegment(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]/g, "-") || "default"
 }
 
-export function resolveTaskListId(config: Partial<OhMyOpenCodeConfig> = {}): string {
+export function resolveTaskListId(config: Partial<OhMyOpenCodeConfig> = {}, directory: string = process.cwd()): string {
   const envId = process.env.ULTRAWORK_TASK_LIST_ID?.trim()
   if (envId) return sanitizePathSegment(envId)
 
@@ -37,7 +37,7 @@ export function resolveTaskListId(config: Partial<OhMyOpenCodeConfig> = {}): str
   const configId = config.sisyphus?.tasks?.task_list_id?.trim()
   if (configId) return sanitizePathSegment(configId)
 
-  return sanitizePathSegment(basename(process.cwd()))
+  return sanitizePathSegment(basename(directory))
 }
 
 export function ensureDir(dirPath: string): void {
@@ -123,8 +123,8 @@ export function generateTaskId(): string {
   return `T-${randomUUID()}`
 }
 
-export function listTaskFiles(config: Partial<OhMyOpenCodeConfig> = {}): string[] {
-  const dir = getTaskDir(config)
+export function listTaskFiles(config: Partial<OhMyOpenCodeConfig> = {}, directory: string = process.cwd()): string[] {
+  const dir = getTaskDir(config, directory)
   if (!existsSync(dir)) return []
   return readdirSync(dir)
     .filter((f) => f.endsWith(".json") && f.startsWith("T-"))

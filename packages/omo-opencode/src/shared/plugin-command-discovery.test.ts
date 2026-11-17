@@ -47,7 +47,8 @@ Build a plan from plugin skill context.
         plugins: {
           [pluginKey]: [
             {
-              scope: "user",
+              scope: "project",
+              projectPath: baseDir,
               installPath: pluginInstallPath,
               version: "1.0.0",
               installedAt: "2026-01-01T00:00:00.000Z",
@@ -95,9 +96,10 @@ describe("plugin command discovery utility", () => {
   })
 
   describe("#given plugin loading is enabled", () => {
-    it("#then returns plugin command and skill definitions", () => {
+    it("#then returns project plugin commands and skills for the session directory when cwd differs", () => {
       // given
-      const options = { pluginsEnabled: true }
+      const options = { pluginsEnabled: true, directory: tempDir }
+      expect(tempDir).not.toBe(process.cwd())
 
       // when
       const definitions = discoverPluginCommandDefinitions(options)

@@ -1,4 +1,4 @@
-import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
+import { tool, type ToolContext, type ToolDefinition } from "@opencode-ai/plugin/tool"
 import { spawnWithWindowsHide } from "../../shared/spawn-with-windows-hide"
 import { isCmuxCompatEnvironment } from "../../shared/tmux/cmux-detect"
 import {
@@ -153,7 +153,10 @@ type InteractiveBashArgs = {
   tmux_command: string
 }
 
-export async function executeInteractiveBash(args: InteractiveBashArgs): Promise<string> {
+export async function executeInteractiveBash(
+  args: InteractiveBashArgs,
+  context?: Pick<ToolContext, "directory">,
+): Promise<string> {
   try {
     const tmuxPath = getCachedTmuxPath() ?? "tmux"
 
@@ -176,6 +179,7 @@ export async function executeInteractiveBash(args: InteractiveBashArgs): Promise
     }
 
     const proc = spawnWithWindowsHide([...resolveTmuxExecutable(tmuxPath), ...parts], {
+      cwd: context?.directory,
       stdout: "pipe",
       stderr: "pipe",
     })

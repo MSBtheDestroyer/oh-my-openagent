@@ -70,12 +70,12 @@ function normalizeHooksConfig(raw: RawClaudeHooksConfig): ClaudeHooksConfig {
   return result
 }
 
-export function getClaudeSettingsPaths(customPath?: string): string[] {
+export function getClaudeSettingsPaths(customPath?: string, directory: string = process.cwd()): string[] {
   const claudeConfigDir = getClaudeConfigDir()
   const paths = [
     join(claudeConfigDir, "settings.json"),
-    join(process.cwd(), ".claude", "settings.json"),
-    join(process.cwd(), ".claude", "settings.local.json"),
+    join(directory, ".claude", "settings.json"),
+    join(directory, ".claude", "settings.local.json"),
   ]
 
   if (customPath && existsSync(customPath)) {
@@ -87,8 +87,8 @@ export function getClaudeSettingsPaths(customPath?: string): string[] {
   return [...new Set(paths)]
 }
 
-function getCacheKey(customSettingsPath?: string): string {
-  return `${process.cwd()}::${customSettingsPath ?? ""}`
+function getCacheKey(directory: string, customSettingsPath?: string): string {
+  return `${directory}::${customSettingsPath ?? ""}`
 }
 
 function getCachedConfig(cacheKey: string): ClaudeHooksConfig | null | undefined {
@@ -224,14 +224,17 @@ export function mergePluginHooksConfigs(
   return result
 }
 
-export async function loadClaudeHooksConfig(customSettingsPath?: string): Promise<ClaudeHooksConfig | null> {
-  const cacheKey = getCacheKey(customSettingsPath)
+export async function loadClaudeHooksConfig(
+  customSettingsPath?: string,
+  directory: string = process.cwd(),
+): Promise<ClaudeHooksConfig | null> {
+  const cacheKey = getCacheKey(directory, customSettingsPath)
   const cachedConfig = getCachedConfig(cacheKey)
   if (cachedConfig !== undefined) {
     return cachedConfig
   }
 
-  const paths = getClaudeSettingsPaths(customSettingsPath)
+  const paths = getClaudeSettingsPaths(customSettingsPath, directory)
   let mergedConfig: ClaudeHooksConfig = {}
 
   for (const settingsPath of paths) {
@@ -252,7 +255,7 @@ export async function loadClaudeHooksConfig(customSettingsPath?: string): Promis
   }
 
   // Merge plugin hooks configs for the current project directory
-  const projectConfigs = pluginHooksState.getConfigs(process.cwd())
+  const projectConfigs = pluginHooksState.getConfigs(directory)
   if (projectConfigs.length > 0) {
     mergedConfig = mergePluginHooksConfigs(mergedConfig, projectConfigs)
   }

@@ -2,7 +2,11 @@ import { dirname } from "path"
 import { resolveCommandsInText, resolveFileReferencesInText } from "../../shared"
 import type { CommandInfo } from "./types"
 
-export async function formatLoadedCommand(command: CommandInfo, userMessage?: string): Promise<string> {
+export async function formatLoadedCommand(
+  command: CommandInfo,
+  userMessage?: string,
+  directory: string = process.cwd(),
+): Promise<string> {
   const sections: string[] = []
 
   sections.push(`# /${command.name} Command\n`)
@@ -40,9 +44,9 @@ export async function formatLoadedCommand(command: CommandInfo, userMessage?: st
     content = await command.lazyContentLoader.load()
   }
 
-  const commandDir = command.path ? dirname(command.path) : process.cwd()
+  const commandDir = command.path ? dirname(command.path) : directory
   const withFileReferences = await resolveFileReferencesInText(content, commandDir)
-  const resolvedContent = await resolveCommandsInText(withFileReferences)
+  const resolvedContent = await resolveCommandsInText(withFileReferences, 0, 3, directory)
 
   let finalContent = resolvedContent.trim()
   if (userMessage) {

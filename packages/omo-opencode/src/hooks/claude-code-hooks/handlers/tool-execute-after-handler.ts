@@ -97,8 +97,8 @@ export function createToolExecuteAfterHandler(ctx: PluginInput, config: PluginCo
       return
     }
 
-    const claudeConfig = await loadClaudeHooksConfig()
-    const extendedConfig = await loadPluginExtendedConfig()
+    const claudeConfig = await loadClaudeHooksConfig(undefined, ctx.directory)
+    const extendedConfig = await loadPluginExtendedConfig(ctx.directory)
 
     const postClient: PostToolUseClient = {
       session: {

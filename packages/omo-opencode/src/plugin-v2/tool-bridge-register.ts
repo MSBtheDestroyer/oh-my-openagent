@@ -112,7 +112,7 @@ export async function registerV1Tools(
             messageID: context.messageID,
             agent: context.agent,
             directory: ctx.location.directory,
-            worktree: ctx.location.project?.canonical ?? ctx.location.directory,
+            worktree: ctx.location.project.directory,
             abort: context.signal,
             metadata: (update) => {
               void context.progress(encodeMetadata(name, update)).catch((error: unknown) => {

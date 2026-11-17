@@ -10,6 +10,24 @@ import * as opencodeConfigDir from "../shared/opencode-config-dir"
 import { createSkillContext } from "./skill-context"
 
 describe("createSkillContext", () => {
+  it("suppresses the builtin browser MCP skill declared in the session project", async () => {
+    // given
+    const directory = mkdtempSync(join(tmpdir(), "omo-skill-mcp-location-"))
+    writeFileSync(join(directory, ".mcp.json"), JSON.stringify({
+      mcpServers: { playwright: { command: "session-playwright" } },
+    }))
+    expect(directory).not.toBe(process.cwd())
+    try {
+      // when
+      const result = await createSkillContext({ directory, pluginConfig: OhMyOpenCodeConfigSchema.parse({}) })
+
+      // then
+      expect(result.mergedSkills.some((skill) => skill.name === "playwright")).toBe(false)
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
   const testDirectory = join(tmpdir(), `skill-context-test-${Date.now()}`)
   // Isolated "global" opencode config dir so the developer's real
   // ~/.config/opencode/opencode.jsonc never leaks into these tests.

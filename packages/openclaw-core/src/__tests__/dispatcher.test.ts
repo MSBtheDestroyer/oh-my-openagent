@@ -1,4 +1,7 @@
 import { describe, expect, test, mock, spyOn } from "bun:test"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import {
   interpolateInstruction,
   resolveCommandTimeoutMs,
@@ -11,6 +14,24 @@ import {
 const commandGatewayTestTimeoutMs = process.platform === "win32" ? 10_000 : 1_000
 
 describe("OpenClaw Dispatcher", () => {
+  test("runs command gateways in the session project instead of the engine cwd", async () => {
+    // given
+    const directory = mkdtempSync(join(tmpdir(), "omo-openclaw-session-"))
+    writeFileSync(join(directory, "receipt.json"), JSON.stringify({ messageId: "session-project-receipt" }))
+    expect(directory).not.toBe(process.cwd())
+    try {
+      // when
+      const result = await wakeCommandGateway("command", {
+        type: "command", method: "POST", command: "cat receipt.json", timeout: commandGatewayTestTimeoutMs,
+      }, { projectPath: directory })
+
+      // then
+      expect(result).toMatchObject({ success: true, messageId: "session-project-receipt" })
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
   function withPlatform<T>(platform: NodeJS.Platform, callback: () => T): T {
     const originalPlatform = process.platform
     Object.defineProperty(process, "platform", { value: platform })

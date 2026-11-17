@@ -69,6 +69,7 @@ describe("comment-checker apply_patch integration", () => {
       "/tmp/fake-comment-checker",
       undefined,
       expect.any(Function),
+      process.cwd(),
     )
   })
 
@@ -124,6 +125,7 @@ describe("comment-checker apply_patch integration", () => {
       "/tmp/fake-comment-checker",
       undefined,
       expect.any(Function),
+      process.cwd(),
     )
   })
 
@@ -166,6 +168,7 @@ describe("comment-checker apply_patch integration", () => {
       "/tmp/fake-comment-checker",
       undefined,
       expect.any(Function),
+      process.cwd(),
     )
   })
 
@@ -208,6 +211,7 @@ describe("comment-checker apply_patch integration", () => {
       "/tmp/fake-comment-checker",
       undefined,
       expect.any(Function),
+      process.cwd(),
     )
   })
 })

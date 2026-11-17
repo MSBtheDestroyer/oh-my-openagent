@@ -6,6 +6,7 @@ import {
 import type { CommandDefinition } from "../features/claude-code-command-loader/types"
 
 export interface PluginCommandDiscoveryOptions {
+  directory?: string
   pluginsEnabled?: boolean
   enabledPluginsOverride?: Record<string, boolean>
 }
@@ -18,6 +19,7 @@ export function discoverPluginCommandDefinitions(
   }
 
   const { plugins } = discoverInstalledPlugins({
+    directory: options?.directory,
     enabledPluginsOverride: options?.enabledPluginsOverride,
   })
 

@@ -1,6 +1,9 @@
 /// <reference types="bun-types" />
 
 import { afterEach, describe, expect, it, spyOn } from "bun:test"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import type { LoadedSkill } from "../../features/opencode-skill-loader"
 import * as shared from "../../shared"
 import * as slashcommand from "../../tools/slashcommand/command-discovery"
@@ -64,6 +67,52 @@ function createRestrictedSkill(): LoadedSkill {
 }
 
 describe("executeSlashCommand resolution semantics", () => {
+  it("discovers project skills from the session directory when no skill list is supplied", async () => {
+    // given
+    const directory = mkdtempSync(join(tmpdir(), "omo-slash-discovery-session-"))
+    const skillDirectory = join(directory, ".claude", "skills", "session-only-skill")
+    mkdirSync(skillDirectory, { recursive: true })
+    const body = crypto.randomUUID()
+    writeFileSync(join(skillDirectory, "SKILL.md"), `---\nname: session-only-skill\ndescription: location\n---\n${body}`)
+    expect(directory).not.toBe(process.cwd())
+    try {
+      // when
+      const result = await executeSlashCommand(
+        { command: "session-only-skill", args: "", raw: "/session-only-skill" },
+        { directory, pluginsEnabled: false },
+      )
+
+      // then
+      expect(result.success).toBe(true)
+      expect(result.replacementText).toContain(body)
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it("expands a pathless skill template from the session directory", async () => {
+    // given
+    const directory = mkdtempSync(join(tmpdir(), "omo-slash-session-"))
+    writeFileSync(join(directory, "marker.txt"), "SESSION_FILE_REFERENCE")
+    writeFileSync(join(directory, "probe.mjs"), 'import { readFileSync } from "node:fs"; process.stdout.write("shell:" + readFileSync("marker.txt", "utf8"))')
+    const skill: LoadedSkill = {
+      name: "location", scope: "user",
+      definition: { name: "location", description: "location", template: `@marker.txt\n!\`${JSON.stringify(process.execPath)} probe.mjs\`` },
+    }
+    expect(directory).not.toBe(process.cwd())
+    try {
+      // when
+      const result = await executeSlashCommand({ command: "location", args: "", raw: "/location" }, { directory, skills: [skill], pluginsEnabled: false })
+
+      // then
+      expect(result.success).toBe(true)
+      expect(result.replacementText).toContain("SESSION_FILE_REFERENCE")
+      expect(result.replacementText).toContain("shell:SESSION_FILE_REFERENCE")
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
   it("returns project command when project and builtin names collide", async () => {
     //#given
     setupExecutorSpies()

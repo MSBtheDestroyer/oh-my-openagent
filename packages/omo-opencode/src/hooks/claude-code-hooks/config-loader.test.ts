@@ -77,6 +77,26 @@ describe("loadPluginExtendedConfig", () => {
     expect(secondResult).toEqual(firstResult)
   })
 
+  test("keeps project hook disable rules and cache entries local to the session directory", async () => {
+    // given
+    const first = join(tempDirectory, "first-session")
+    const second = join(tempDirectory, "second-session")
+    for (const directory of [first, second]) mkdirSync(join(directory, ".opencode"), { recursive: true })
+    writeConfigFile(join(first, ".opencode", "opencode-cc-plugin.json"), ["first-disabled"])
+    writeConfigFile(join(second, ".opencode", "opencode-cc-plugin.json"), ["second-disabled"])
+    expect(first).not.toBe(process.cwd())
+
+    // when
+    const firstConfig = await loadPluginExtendedConfig(first)
+    const secondConfig = await loadPluginExtendedConfig(second)
+    const firstAgain = await loadPluginExtendedConfig(first)
+
+    // then
+    expect(firstConfig.disabledHooks?.Stop).toEqual(["first-disabled"])
+    expect(secondConfig.disabledHooks?.Stop).toEqual(["second-disabled"])
+    expect(firstAgain.disabledHooks?.Stop).toEqual(["first-disabled"])
+  })
+
   test("#given cached extended config #when ttl expires or cache clears #then updated config is reloaded", async () => {
     //#given
     writeConfigFile(userConfigPath, ["user-first"])

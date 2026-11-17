@@ -59,7 +59,7 @@ async function discoverAllCommands(options?: ExecutorOptions): Promise<CommandIn
     enabledPluginsOverride: options?.enabledPluginsOverride,
   })
 
-  const skills = options?.skills ?? (await discoverAllSkills())
+  const skills = options?.skills ?? (await discoverAllSkills(options?.directory))
   const skillCommands = skills.map(skillToCommandInfo)
 
   const scopeOrder: DiscoveredCommandInfo["scope"][] = [
@@ -107,7 +107,7 @@ function substituteCommandTemplate(content: string, args: string, sessionID: str
   })
 }
 
-async function formatCommandTemplate(cmd: CommandInfo, args: string, sessionID?: string): Promise<string> {
+async function formatCommandTemplate(cmd: CommandInfo, args: string, options?: ExecutorOptions): Promise<string> {
   const sections: string[] = []
 
   sections.push(`# /${cmd.name} Command\n`)
@@ -137,10 +137,11 @@ async function formatCommandTemplate(cmd: CommandInfo, args: string, sessionID?:
     content = await cmd.lazyContentLoader.load()
   }
 
-  const commandDir = cmd.path ? dirname(cmd.path) : process.cwd()
+  const directory = options?.directory ?? process.cwd()
+  const commandDir = cmd.path ? dirname(cmd.path) : directory
   const withFileRefs = await resolveFileReferencesInText(content, commandDir)
-  const resolvedContent = await resolveCommandsInText(withFileRefs)
-  const substitutedContent = substituteCommandTemplate(resolvedContent, args, sessionID)
+  const resolvedContent = await resolveCommandsInText(withFileRefs, 0, 3, directory)
+  const substitutedContent = substituteCommandTemplate(resolvedContent, args, options?.sessionID)
   sections.push(substitutedContent.trim())
 
   if (args && !resolvedContent.includes("${user_message}") && !resolvedContent.includes("$ARGUMENTS")) {
@@ -181,7 +182,7 @@ export async function executeSlashCommand(
   }
 
   try {
-    const template = await formatCommandTemplate(command, parsed.args, options?.sessionID)
+    const template = await formatCommandTemplate(command, parsed.args, options)
     return {
       success: true,
       replacementText: template,

@@ -11,8 +11,8 @@ export function createPreCompactHandler(ctx: PluginInput, config: PluginConfig) 
       return
     }
 
-    const claudeConfig = await loadClaudeHooksConfig()
-    const extendedConfig = await loadPluginExtendedConfig()
+    const claudeConfig = await loadClaudeHooksConfig(undefined, ctx.directory)
+    const extendedConfig = await loadPluginExtendedConfig(ctx.directory)
 
     const preCompactCtx: PreCompactContext = {
       sessionId: input.sessionID,
