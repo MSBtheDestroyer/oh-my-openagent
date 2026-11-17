@@ -24,7 +24,10 @@ const EMPTY_PLUGIN_COMPONENTS: PluginComponents = {
   errors: [],
 }
 
-export async function loadPluginComponents(params: { pluginConfig: OhMyOpenCodeConfig }): Promise<PluginComponents> {
+export async function loadPluginComponents(params: {
+  pluginConfig: OhMyOpenCodeConfig
+  directory: string
+}): Promise<PluginComponents> {
   const pluginsEnabled = params.pluginConfig.claude_code?.plugins ?? true
   if (!pluginsEnabled) {
     return EMPTY_PLUGIN_COMPONENTS
@@ -40,6 +43,7 @@ export async function loadPluginComponents(params: { pluginConfig: OhMyOpenCodeC
 
     const pluginComponents = (await Promise.race([
       loadAllPluginComponents({
+        directory: params.directory,
         enabledPluginsOverride: params.pluginConfig.claude_code?.plugins_override,
         anthropicProvider: params.pluginConfig.claude_code?.anthropic_provider,
       }),

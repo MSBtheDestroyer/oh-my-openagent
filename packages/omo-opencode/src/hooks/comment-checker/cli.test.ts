@@ -14,7 +14,7 @@ function createMockInput() {
     session_id: "test",
     tool_name: "Write",
     transcript_path: "",
-    cwd: "/tmp",
+    cwd: tmpdir(),
     hook_event_name: "PostToolUse",
     tool_input: { file_path: "/tmp/test.ts", content: "const x = 1" },
   }

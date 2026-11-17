@@ -63,8 +63,8 @@ export function createSessionEventHandler(ctx: PluginInput, config: PluginConfig
     const sessionID = resolveSessionEventID(props)
     if (!sessionID) return
 
-    const claudeConfig = await loadClaudeHooksConfig()
-    const extendedConfig = await loadPluginExtendedConfig()
+    const claudeConfig = await loadClaudeHooksConfig(undefined, ctx.directory)
+    const extendedConfig = await loadPluginExtendedConfig(ctx.directory)
 
     const errorStateBefore = sessionErrorState.get(sessionID)
     const endedWithErrorBefore = errorStateBefore?.hasError === true

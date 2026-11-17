@@ -75,20 +75,14 @@ describe("loadPluginMcpServers", () => {
         mcpPath: mcpConfigPath,
       }
 
-      const originalCwd = process.cwd()
-      process.chdir(projectSubdirectory)
+      expect(projectSubdirectory).not.toBe(process.cwd())
+      const { loadPluginMcpServers } = await import(`./mcp-server-loader?t=${Date.now()}`)
+      const servers = await loadPluginMcpServers([plugin], projectSubdirectory)
 
-      try {
-        const { loadPluginMcpServers } = await import(`./mcp-server-loader?t=${Date.now()}`)
-        const servers = await loadPluginMcpServers([plugin])
-
-        expect(servers).toHaveProperty("demo-plugin:globalServer")
-        expect(servers).toHaveProperty("demo-plugin:matchingLocal")
-        expect(servers).not.toHaveProperty("demo-plugin:nonMatchingLocal")
-        expect(servers).not.toHaveProperty("demo-plugin:parentLocal")
-      } finally {
-        process.chdir(originalCwd)
-      }
+      expect(servers).toHaveProperty("demo-plugin:globalServer")
+      expect(servers).toHaveProperty("demo-plugin:matchingLocal")
+      expect(servers).not.toHaveProperty("demo-plugin:nonMatchingLocal")
+      expect(servers).not.toHaveProperty("demo-plugin:parentLocal")
     })
   })
 })

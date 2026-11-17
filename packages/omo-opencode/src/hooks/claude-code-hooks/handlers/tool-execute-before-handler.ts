@@ -88,8 +88,8 @@ export function createToolExecuteBeforeHandler(ctx: PluginInput, config: PluginC
       return
     }
 
-    const claudeConfig = await loadClaudeHooksConfig()
-    const extendedConfig = await loadPluginExtendedConfig()
+    const claudeConfig = await loadClaudeHooksConfig(undefined, ctx.directory)
+    const extendedConfig = await loadPluginExtendedConfig(ctx.directory)
 
     const preCtx: PreToolUseContext = {
       sessionId: input.sessionID,

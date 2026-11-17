@@ -22,7 +22,7 @@ export function discoverInstalledPlugins(options?: PluginLoaderOptions): PluginL
   const settingsEnabledPlugins = settings?.enabledPlugins
   const overrideEnabledPlugins = options?.enabledPluginsOverride
   const pluginManifestLoader = options?.loadPluginManifestOverride ?? loadPluginManifest
-  const cwd = process.cwd()
+  const cwd = options?.directory ?? process.cwd()
 
   for (const [pluginKey, installation] of extractPluginEntries(db)) {
     if (!installation) continue

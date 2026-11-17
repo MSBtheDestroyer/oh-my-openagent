@@ -9,9 +9,11 @@ import type { LoadedPlugin } from "./types"
 import { resolvePluginPaths } from "./plugin-path-resolver"
 import { bunFile } from "../../shared/bun-file-shim"
 
-export async function loadPluginMcpServers(plugins: LoadedPlugin[]): Promise<Record<string, McpServerConfig>> {
+export async function loadPluginMcpServers(
+  plugins: LoadedPlugin[],
+  cwd: string = process.cwd(),
+): Promise<Record<string, McpServerConfig>> {
   const servers: Record<string, McpServerConfig> = {}
-  const cwd = process.cwd()
 
   for (const plugin of plugins) {
     if (!plugin.mcpPath || !existsSync(plugin.mcpPath)) continue

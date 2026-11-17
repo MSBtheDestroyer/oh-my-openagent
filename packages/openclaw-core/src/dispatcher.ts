@@ -170,6 +170,7 @@ export async function wakeCommandGateway(
     })
 
     const proc = spawn(["sh", "-c", interpolated], {
+      cwd: variables.projectPath,
       env: { ...process.env },
       stdout: "pipe",
       stderr: "ignore",

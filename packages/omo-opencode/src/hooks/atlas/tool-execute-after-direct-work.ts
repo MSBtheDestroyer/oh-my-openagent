@@ -36,7 +36,7 @@ export async function handleDirectWorkToolAfter(input: {
     const sessionWork = getWorkForSession(ctx.directory, toolInput.sessionID)
     if (sessionWork) {
       const planPath = resolveBoulderPlanPathForWork(ctx.directory, sessionWork)
-      if (resolve(filePath) === resolve(planPath) && planSnapshot !== undefined) {
+      if (resolve(ctx.directory, filePath) === resolve(ctx.directory, planPath) && planSnapshot !== undefined) {
         const beforeCheckedKeys = parseCheckedTopLevelTaskKeys(planSnapshot)
         const afterCheckedKeys = readCheckedTaskKeysFromPlan(planPath)
         for (const taskKey of afterCheckedKeys) {

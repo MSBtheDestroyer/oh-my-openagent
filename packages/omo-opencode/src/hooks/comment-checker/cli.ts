@@ -158,6 +158,7 @@ export async function runCommentChecker(
         existsSync,
         spawn: (args: readonly string[]) => {
           const subprocess = spawn([...args], {
+            cwd: input.cwd,
             stdin: "pipe",
             stdout: "pipe",
             stderr: "pipe",

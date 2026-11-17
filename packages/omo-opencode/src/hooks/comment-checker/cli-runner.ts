@@ -70,7 +70,7 @@ export function getCommentCheckerCliPathPromise(): Promise<string | null> | null
 }
 
 export async function processWithCli(
-  input: { tool: string; sessionID: string; callID: string },
+  input: { tool: string; sessionID: string; callID: string; directory?: string },
   pendingCall: PendingCall,
   output: { output: string },
   cliPath: string,
@@ -82,14 +82,13 @@ export async function processWithCli(
 ): Promise<void> {
   await withCommentCheckerLock(
     async () => {
-      void input
       debugLog("using CLI mode with path:", cliPath)
 
       const hookInput: HookInput = {
         session_id: pendingCall.sessionID,
         tool_name: pendingCall.tool.charAt(0).toUpperCase() + pendingCall.tool.slice(1),
         transcript_path: "",
-        cwd: process.cwd(),
+        cwd: input.directory ?? process.cwd(),
         hook_event_name: "PostToolUse",
         tool_input: {
           file_path: pendingCall.filePath,
@@ -142,6 +141,7 @@ export async function processApplyPatchEditsWithCli(
   cliPath: string,
   customPrompt: string | undefined,
   debugLog: (...args: unknown[]) => void,
+  directory: string = process.cwd(),
 ): Promise<void> {
   debugLog("processing apply_patch edits:", edits.length)
 
@@ -152,7 +152,7 @@ export async function processApplyPatchEditsWithCli(
           session_id: sessionID,
           tool_name: "Edit",
           transcript_path: "",
-          cwd: process.cwd(),
+          cwd: directory,
           hook_event_name: "PostToolUse",
           tool_input: {
             file_path: edit.filePath,

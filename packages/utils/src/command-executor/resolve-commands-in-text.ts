@@ -1,7 +1,12 @@
 import { executeCommand } from "./execute-command"
 import { findEmbeddedCommands } from "./embedded-commands"
 
-export async function resolveCommandsInText(text: string, depth: number = 0, maxDepth: number = 3): Promise<string> {
+export async function resolveCommandsInText(
+  text: string,
+  depth: number = 0,
+  maxDepth: number = 3,
+  cwd?: string,
+): Promise<string> {
   if (depth >= maxDepth) {
     return text
   }
@@ -11,7 +16,7 @@ export async function resolveCommandsInText(text: string, depth: number = 0, max
     return text
   }
 
-  const tasks = matches.map((m) => executeCommand(m.command))
+  const tasks = matches.map((m) => executeCommand(m.command, cwd))
   const results = await Promise.allSettled(tasks)
 
   const replacements = new Map<string, string>()
@@ -34,7 +39,7 @@ export async function resolveCommandsInText(text: string, depth: number = 0, max
   }
 
   if (findEmbeddedCommands(resolved).length > 0) {
-    return resolveCommandsInText(resolved, depth + 1, maxDepth)
+    return resolveCommandsInText(resolved, depth + 1, maxDepth, cwd)
   }
 
   return resolved

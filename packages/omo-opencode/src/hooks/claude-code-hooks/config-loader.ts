@@ -37,12 +37,12 @@ function getUserConfigPaths(): string[] {
   return getOpenCodeConfigDirs({ binary: "opencode" }).map((dir) => join(dir, "opencode-cc-plugin.json"))
 }
 
-function getProjectConfigPath(): string {
-  return join(process.cwd(), ".opencode", "opencode-cc-plugin.json")
+function getProjectConfigPath(directory: string): string {
+  return join(directory, ".opencode", "opencode-cc-plugin.json")
 }
 
-function getCacheKey(): string {
-  return `${process.cwd()}::${getUserConfigPaths().join("|")}`
+function getCacheKey(directory: string): string {
+  return `${directory}::${getUserConfigPaths().join("|")}`
 }
 
 function getCachedConfig(cacheKey: string): PluginExtendedConfig | undefined {
@@ -101,8 +101,8 @@ function mergeDisabledHooks(
   }
 }
 
-export async function loadPluginExtendedConfig(): Promise<PluginExtendedConfig> {
-  const cacheKey = getCacheKey()
+export async function loadPluginExtendedConfig(directory: string = process.cwd()): Promise<PluginExtendedConfig> {
+  const cacheKey = getCacheKey(directory)
   const cachedConfig = getCachedConfig(cacheKey)
   if (cachedConfig) {
     return cachedConfig
@@ -120,7 +120,7 @@ export async function loadPluginExtendedConfig(): Promise<PluginExtendedConfig> 
   }
 
   // Project config overrides all user configs
-  const projectConfig = await loadConfigFromPath(getProjectConfigPath())
+  const projectConfig = await loadConfigFromPath(getProjectConfigPath(directory))
   if (projectConfig?.disabledHooks) {
     mergedDisabledHooks = mergeDisabledHooks(mergedDisabledHooks, projectConfig.disabledHooks)
   }

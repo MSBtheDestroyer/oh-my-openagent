@@ -34,7 +34,9 @@ export async function applyMcpConfig(params: {
   const userDisabledMcps = captureUserDisabledMcps(userMcp)
 
   const mcpResult =
-    (params.pluginConfig.claude_code?.mcp ?? true) ? await loadMcpConfigs(disabledMcps) : { servers: {} }
+    (params.pluginConfig.claude_code?.mcp ?? true)
+      ? await loadMcpConfigs(disabledMcps, { cwd: params.ctx.directory })
+      : { servers: {} }
 
   if (userMcp) {
     for (const name of Object.keys(userMcp)) {

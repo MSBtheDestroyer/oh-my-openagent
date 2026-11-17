@@ -89,7 +89,7 @@ export async function createSkillContext(args: {
       disabledSkills,
       teamModeEnabled: pluginConfig.team_mode?.enabled ?? false,
       playwrightMcpArgs,
-      systemMcpNames: getSystemMcpServerNames(),
+      systemMcpNames: getSystemMcpServerNames({ cwd: directory }),
     })
 
     const includeClaudeSkills = pluginConfig.claude_code?.skills !== false

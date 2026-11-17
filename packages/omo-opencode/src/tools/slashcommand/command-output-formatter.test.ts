@@ -1,11 +1,37 @@
 import { describe, expect, it } from "bun:test"
-import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { formatLoadedCommand } from "./command-output-formatter"
 import type { CommandInfo } from "./types"
 
 describe("command output formatter", () => {
+  it.each([false, true])("uses the session cwd for shell expansion with a command path: %s", async (hasPath) => {
+    // given
+    const directory = mkdtempSync(join(tmpdir(), "omo-format-command-session-"))
+    const commandDirectory = join(directory, "global-command")
+    mkdirSync(commandDirectory)
+    writeFileSync(join(directory, "marker.txt"), "SESSION_REFERENCE")
+    writeFileSync(join(commandDirectory, "marker.txt"), "COMMAND_REFERENCE")
+    writeFileSync(join(directory, "probe.mjs"), 'import { readFileSync } from "node:fs"; process.stdout.write("shell:" + readFileSync("marker.txt", "utf8"))')
+    const command: CommandInfo = {
+      name: "location", metadata: { name: "location", description: "location" }, scope: "plugin",
+      ...(hasPath ? { path: join(commandDirectory, "location.md") } : {}),
+      content: `@marker.txt\n!\`${JSON.stringify(process.execPath)} probe.mjs\``,
+    }
+    expect(directory).not.toBe(process.cwd())
+    try {
+      // when
+      const output = await formatLoadedCommand(command, undefined, directory)
+
+      // then
+      expect(output).toContain(hasPath ? "COMMAND_REFERENCE" : "SESSION_REFERENCE")
+      expect(output).toContain("shell:SESSION_REFERENCE")
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
   describe("#given command template includes argument placeholders", () => {
     it("#then replaces both placeholder forms", async () => {
       // given

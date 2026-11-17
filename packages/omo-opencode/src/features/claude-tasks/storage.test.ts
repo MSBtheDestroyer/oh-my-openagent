@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs"
+import { tmpdir } from "os"
 import { join, basename } from "path"
 import { z } from "zod"
 import { getOpenCodeConfigDir } from "../../shared/opencode-config-dir"
@@ -61,6 +62,27 @@ describe("getTaskDir", () => {
 
     //#then
     expect(result).toBe(join(configDir, "tasks", expectedListId))
+  })
+
+  test("resolves relative storage and default list ID against the session directory", () => {
+    // given
+    const directory = mkdtempSync(join(tmpdir(), "omo-task-session-"))
+    const config = { sisyphus: { tasks: { storage_path: ".custom/tasks", claude_code_compat: false } } }
+    delete process.env.ULTRAWORK_TASK_LIST_ID
+    delete process.env.CLAUDE_CODE_TASK_LIST_ID
+    expect(directory).not.toBe(process.cwd())
+    try {
+      // when
+      const taskDir = getTaskDir(config, directory)
+      const defaultTaskDir = getTaskDir({}, directory)
+
+      // then
+      expect(taskDir).toBe(join(directory, ".custom/tasks"))
+      expect(defaultTaskDir).toBe(join(getOpenCodeConfigDir({ binary: "opencode" }), "tasks", basename(directory)))
+      expect(resolveTaskListId({}, directory)).toBe(basename(directory))
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
   })
 
   test("respects ULTRAWORK_TASK_LIST_ID env var", () => {

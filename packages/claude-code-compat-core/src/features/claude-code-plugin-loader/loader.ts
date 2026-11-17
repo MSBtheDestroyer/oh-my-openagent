@@ -63,6 +63,7 @@ function getPluginComponentsCacheKey(options?: PluginLoaderOptions): string {
   )
 
   return JSON.stringify({
+    directory: options?.directory ?? process.cwd(),
     enabledPluginsOverride: overrideEntries,
     anthropicProvider: options?.anthropicProvider,
   })
@@ -101,7 +102,7 @@ async function loadAllPluginComponentsInternal(
     Promise.resolve(deps.loadPluginCommands(plugins)),
     Promise.resolve(deps.loadPluginSkillsAsCommands(plugins)),
     Promise.resolve(deps.loadPluginAgents(plugins, options?.anthropicProvider)),
-    deps.loadPluginMcpServers(plugins),
+    deps.loadPluginMcpServers(plugins, options?.directory),
     Promise.resolve(deps.loadPluginHooksConfigs(plugins)),
   ])
 

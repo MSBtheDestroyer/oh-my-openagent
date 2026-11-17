@@ -47,6 +47,29 @@ describe("loadClaudeHooksConfig", () => {
     expect(getStopCommands(secondResult)).not.toContain("second-stop-command")
   })
 
+  test("loads and caches project settings by session directory when engine cwd differs", async () => {
+    // given
+    const first = join(tempDirectory, "session-first")
+    const second = join(tempDirectory, "session-second")
+    for (const directory of [first, second]) mkdirSync(join(directory, ".claude"), { recursive: true })
+    writeSettingsFile(join(first, ".claude", "settings.json"), "session-first-command")
+    writeSettingsFile(join(second, ".claude", "settings.local.json"), "session-second-command")
+    expect(first).not.toBe(process.cwd())
+    expect(second).not.toBe(process.cwd())
+
+    // when
+    const firstConfig = await loadClaudeHooksConfig(undefined, first)
+    const secondConfig = await loadClaudeHooksConfig(undefined, second)
+    const firstAgain = await loadClaudeHooksConfig(undefined, first)
+
+    // then
+    expect(getStopCommands(firstConfig)).toContain("session-first-command")
+    expect(getStopCommands(firstConfig)).not.toContain("session-second-command")
+    expect(getStopCommands(secondConfig)).toContain("session-second-command")
+    expect(getStopCommands(secondConfig)).not.toContain("session-first-command")
+    expect(getStopCommands(firstAgain)).toContain("session-first-command")
+  })
+
   test("#given cached hook config #when ttl expires or cache clears #then updated file contents are reloaded", async () => {
     //#given
     writeSettingsFile(customSettingsPath, "first-stop-command")

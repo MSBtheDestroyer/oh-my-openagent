@@ -47,7 +47,7 @@ export async function applyCommandConfig(params: {
       browserProvider: params.pluginConfig.browser_automation_engine?.provider ?? "playwright",
       disabledSkills,
       teamModeEnabled: params.pluginConfig.team_mode?.enabled ?? false,
-      systemMcpNames: getSystemMcpServerNames(),
+      systemMcpNames: getSystemMcpServerNames({ cwd: params.ctx.directory }),
     }),
   )
   for (const disabledCommand of params.pluginConfig.disabled_commands ?? []) {

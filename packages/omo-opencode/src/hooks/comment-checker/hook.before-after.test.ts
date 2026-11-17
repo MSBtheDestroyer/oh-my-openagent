@@ -41,7 +41,7 @@ describe("comment-checker mutation tool routing", () => {
     // then
     expect(processWithCli).toHaveBeenCalledTimes(1)
     expect(processWithCli).toHaveBeenCalledWith(
-      input,
+      { ...input, directory: process.cwd() },
       expect.objectContaining({
         filePath: "/repo/src/write.ts",
         content: "// write comment\nconst a = 1\n",
@@ -73,7 +73,7 @@ describe("comment-checker mutation tool routing", () => {
     // then
     expect(processWithCli).toHaveBeenCalledTimes(1)
     expect(processWithCli).toHaveBeenCalledWith(
-      input,
+      { ...input, directory: process.cwd() },
       expect.objectContaining({
         filePath: "/repo/src/edit.ts",
         oldString: "const b = 1\n",
@@ -102,7 +102,7 @@ describe("comment-checker mutation tool routing", () => {
     // then
     expect(processWithCli).toHaveBeenCalledTimes(1)
     expect(processWithCli).toHaveBeenCalledWith(
-      input,
+      { ...input, directory: process.cwd() },
       expect.objectContaining({
         filePath: "/repo/src/multiedit.ts",
         edits,

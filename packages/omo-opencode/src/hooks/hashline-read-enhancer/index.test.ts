@@ -19,6 +19,24 @@ function mockCtx(): PluginInput {
 }
 
 describe("hashline-read-enhancer", () => {
+  it("counts a relative write target in the session directory when the engine cwd differs", async () => {
+    // given
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "omo-hashline-write-session-"))
+    fs.writeFileSync(path.join(directory, "written.txt"), "first\nsecond\nthird")
+    const hook = createHashlineReadEnhancerHook({ ...mockCtx(), directory }, { hashline_edit: { enabled: true } })
+    const output = { title: "written.txt", output: "Success", metadata: { filePath: "written.txt" } }
+    expect(directory).not.toBe(process.cwd())
+    try {
+      // when
+      await hook["tool.execute.after"]({ tool: "write", sessionID: "location", callID: "write" }, output)
+
+      // then
+      expect(output.output).toBe("File written successfully. 3 lines written.")
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
   it("hashifies only file content lines in read output", async () => {
     //#given
     const hook = createHashlineReadEnhancerHook(mockCtx(), { hashline_edit: { enabled: true } })

@@ -237,6 +237,8 @@ export interface ClaudeSettings {
  * Plugin loader options
  */
 export interface PluginLoaderOptions {
+  readonly directory?: string
+
   /**
    * Override the plugins home directory for testing.
    * If not provided, uses CLAUDE_PLUGINS_HOME env var or ~/.claude/plugins

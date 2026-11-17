@@ -26,7 +26,7 @@ export function projectV1Input(ctx: Pick<V2Context, "location">, client: V1Clien
       worktree: ctx.location.project.canonical,
     },
     directory: ctx.location.directory,
-    worktree: ctx.location.project.canonical,
+    worktree: ctx.location.project.directory,
     experimental_workspace: {
       register: () => unsupportedV1Call("experimental_workspace.register"),
     },
