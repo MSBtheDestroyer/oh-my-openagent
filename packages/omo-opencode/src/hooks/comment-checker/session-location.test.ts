@@ -1,11 +1,23 @@
-import { describe, expect, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createCommentCheckerHooks } from "./hook"
 import { processApplyPatchEditsWithCli, processWithCli } from "./cli-runner"
+import { _resetCommentCheckerInitializationForTesting } from "./initialization-gate"
+import { stopPendingCallCleanup } from "./pending-calls"
 
 describe("comment checker session location", () => {
+  beforeEach(() => {
+    stopPendingCallCleanup()
+    _resetCommentCheckerInitializationForTesting()
+  })
+
+  afterEach(() => {
+    stopPendingCallCleanup()
+    _resetCommentCheckerInitializationForTesting()
+  })
+
   test.each(["edit", "apply_patch"])("runs %s checks with matching hook and subprocess cwd", async (tool) => {
     // given
     const directory = realpathSync(mkdtempSync(join(tmpdir(), "omo-comment-session-")))
