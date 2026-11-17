@@ -41,7 +41,7 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
         disabledSkills: options?.disabledSkills,
         browserProvider: options?.browserProvider,
         teamModeEnabled: options?.teamModeEnabled,
-        directory: context?.directory ?? options.directory,
+        directory: options.directory,
       })) ?? []
     return options.skills ? [...options.skills] : discovered
   }
@@ -69,11 +69,11 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
     return allSkills
   }
 
-  const getCommands = (directory = options.directory): CommandInfo[] => {
+  const getCommands = (): CommandInfo[] => {
     if (options.commands) return [...options.commands]
 
     return (
-      commandDiscovery.discoverCommandsSync(directory, {
+      commandDiscovery.discoverCommandsSync(options.directory, {
         pluginsEnabled: options.pluginsEnabled,
         enabledPluginsOverride: options.enabledPluginsOverride,
       }) ?? []
@@ -151,7 +151,7 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
     },
     async execute(args: SkillArgs, ctx?: ToolContext) {
       const skills = await getBaseSkills(ctx)
-      const commands = getCommands(ctx?.directory ?? options.directory)
+      const commands = getCommands()
 
       const requestedName = args.name.replace(/^\//, "")
       let matchedSkill = matchSkillByName(skills, requestedName)
@@ -190,7 +190,7 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
 
         const dir = matchedSkill.path
           ? dirname(matchedSkill.path)
-          : matchedSkill.resolvedPath || ctx?.directory || options.directory || process.cwd()
+          : matchedSkill.resolvedPath || options.directory
 
         const output = [`## Skill: ${matchedSkill.name}`, "", `**Base directory**: ${dir}`, "", body]
 
@@ -218,7 +218,7 @@ export function createSkillTool(options: SkillLoadOptions): ToolDefinition {
       const matchedCommand = matchCommandByName(commands, requestedName)
 
       if (matchedCommand) {
-        return await formatLoadedCommand(matchedCommand, args.user_message, ctx?.directory ?? options.directory)
+        return await formatLoadedCommand(matchedCommand, args.user_message, options.directory)
       }
 
       const partialMatches = findPartialMatches(skills, commands, requestedName)
