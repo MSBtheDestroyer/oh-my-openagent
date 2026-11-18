@@ -1,13 +1,14 @@
 import { log } from "../../shared"
 import { resolveSessionEventID } from "../../shared/event-session-id"
 import { MIN_IDLE_TIME_MS } from "./constants"
+import { taskOutputSince } from "./task-output-since"
 import type { BackgroundTask } from "./types"
 
 export function handleSessionIdleBackgroundEvent(args: {
   properties: Record<string, unknown>
   findBySession: (sessionID: string) => BackgroundTask | undefined
   idleDeferralTimers: Map<string, ReturnType<typeof setTimeout>>
-  validateSessionHasOutput: (sessionID: string, ownMessagesSince?: number) => Promise<boolean>
+  validateSessionHasOutput: (sessionID: string, outputSince?: number) => Promise<boolean>
   checkSessionTodos: (sessionID: string) => Promise<boolean>
   tryCompleteTask: (task: BackgroundTask, source: string) => Promise<boolean>
   emitIdleEvent: (sessionID: string) => void
@@ -51,7 +52,7 @@ export function handleSessionIdleBackgroundEvent(args: {
     return
   }
 
-  validateSessionHasOutput(sessionID, task.ownMessagesSince)
+  validateSessionHasOutput(sessionID, taskOutputSince(task))
     .then(async (hasValidOutput) => {
       if (task.status !== "running") {
         log("[background-agent] Task status changed during validation, skipping:", {
