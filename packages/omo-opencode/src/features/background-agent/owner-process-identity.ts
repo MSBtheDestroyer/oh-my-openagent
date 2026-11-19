@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process"
 import { readFile } from "node:fs/promises"
+import { readDarwinProcessStartSeconds } from "@oh-my-opencode/memory-core/process-start-time"
 import type { OwnerProcess } from "./task-recovery-store"
 
 export type ProcessLiveness = { readonly start: string } | "gone" | "unknown"
@@ -57,12 +58,43 @@ async function readLinuxProcessStart(pid: number): Promise<ProcessLiveness> {
   return startTicks && /^\d+$/.test(startTicks) ? { start: `${boot}:${startTicks}` } : "unknown"
 }
 
-function readDarwinProcessStart(pid: number): Promise<ProcessLiveness> {
+/**
+ * macOS reads the start time from libproc, in-process, and prints it as `ps -o
+ * lstart` does, so records written by builds that ran `ps` still compare equal.
+ * A `/bin/ps` child is the fallback only for a pid libproc cannot read and that
+ * still exists (a zombie, or another user's process): under heavy load Bun can
+ * lose a child's exit and EOF altogether, even past execFile's timeout, and
+ * every background task launch awaits this read.
+ */
+async function readDarwinProcessStart(pid: number): Promise<ProcessLiveness> {
+  const seconds = await readDarwinProcessStartSeconds(pid)
+  if (seconds !== null) return { start: formatPsLstart(seconds) }
+  try {
+    process.kill(pid, 0)
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ESRCH") return "gone"
+  }
+  return readDarwinProcessStartWithPs(pid)
+}
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+/** `strftime("%c")` in the C locale and local time, whitespace collapsed as `readDarwinProcessStartWithPs` does. */
+function formatPsLstart(epochSeconds: number): string {
+  const date = new Date(epochSeconds * 1000)
+  const pad = (value: number) => String(value).padStart(2, "0")
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  return `${WEEKDAYS[date.getDay()]} ${MONTHS[date.getMonth()]} ${date.getDate()} ${time} ${date.getFullYear()}`
+}
+
+function readDarwinProcessStartWithPs(pid: number): Promise<ProcessLiveness> {
   return new Promise((resolve) => {
     execFile(
       "/bin/ps",
       ["-o", "stat=", "-o", "lstart=", "-p", String(pid)],
-      { env: { ...process.env, LC_ALL: "C" }, timeout: 5000 },
+      // `ps` prints local time: run it in the zone `formatPsLstart` uses (bun test runs JS in UTC).
+      { env: { ...process.env, LC_ALL: "C", TZ: Intl.DateTimeFormat().resolvedOptions().timeZone }, timeout: 5000 },
       (error, stdout) => {
         const [state, ...start] = stdout.trim().split(/\s+/)
         if (!state) resolve(error?.code === 1 ? "gone" : "unknown")

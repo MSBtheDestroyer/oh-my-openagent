@@ -2,6 +2,8 @@ import { buildForkTaskPrompt, isForkSubagent, readParentModel, resolveForkExecut
 import { tool, type ToolDefinition } from "@opencode-ai/plugin"
 import type { DelegatedModelConfig, ToolContextWithMetadata, DelegateTaskToolOptions } from "./types"
 import { log } from "../../shared/logger"
+import { parseModelString } from "../../shared/model-string-parser"
+import { inheritCybersecFallbackChain, inheritCybersecModel, isCybersecModel } from "../../shared/cybersec-inheritance"
 import { buildSystemContent } from "./prompt-builder"
 import {
   resolveSkillContent,
@@ -302,6 +304,16 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         agentToUse = resolution.agentToUse
         categoryModel = resolution.categoryModel
         fallbackChain = resolution.fallbackChain
+      }
+
+      if (isCybersecModel(parentContext.model)) {
+        /* With no resolved model the child runs on the engine's default model,
+           so that is the one that would leave anthropic-cybersec. */
+        const derived = categoryModel ?? parseModelString(systemDefaultModel ?? "")
+        const cybersecContext = { sessionID: parentContext.sessionID, agent: agentToUse }
+        const inherited = inheritCybersecModel(parentContext.model, derived, cybersecContext)
+        if (inherited !== derived) categoryModel = inherited
+        fallbackChain = inheritCybersecFallbackChain(parentContext.model, fallbackChain, cybersecContext)
       }
 
       const systemContent = buildSystemContent({

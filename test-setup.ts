@@ -48,6 +48,12 @@ setDefaultTimeout(process.platform === "win32" ? 30_000 : 20_000)
 const { home: HERMETIC_HOME } = installHermeticHome()
 process.env.XDG_DATA_HOME = join(HERMETIC_HOME, ".local", "share")
 delete process.env.OPENCODE_SERVER_PASSWORD
+// A Vibeterm host exports VIBETERM_* into every agent shell, and VIBETERM_MACHINE_ID alone makes
+// captureContinuationPermit refuse unbridged sessions, so a run started there failed continuation tests
+// that pass anywhere else. Tests that exercise those names set them themselves.
+for (const name of Object.keys(process.env)) {
+  if (name.startsWith("VIBETERM_")) delete process.env[name]
+}
 // A runner may export git config or repository redirection: a hermetic gate's GIT_CONFIG_COUNT pair sets
 // core.hooksPath=/dev/null, so every git a test started skipped the hooks its own fixture installed (#12354).
 // Tests own their git config (GIT_CONFIG_GLOBAL above), so the names memory git drops are dropped for the run,

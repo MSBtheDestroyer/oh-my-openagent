@@ -75,6 +75,7 @@ import type { PendingParentWake } from "./parent-wake-dedupe"
 import { registerManagerForCleanup, unregisterManagerForCleanup } from "./process-cleanup"
 import { removeTaskToastTracking } from "./remove-task-toast-tracking"
 import { MIN_SESSION_GONE_POLLS, verifySessionExists as verifySessionStillExists } from "./session-existence"
+import { taskOutputSince } from "./task-output-since"
 import { getStoppedSessionError, MIN_ERRORED_IDLE_POLLS } from "./session-stopped-on-error"
 import { handleSessionIdleBackgroundEvent } from "./session-idle-event-handler"
 import {
@@ -1690,6 +1691,8 @@ The fallback retry session is now created and can be inspected directly.
     // Reset startedAt on resume to prevent immediate completion
     // The MIN_IDLE_TIME_MS check uses startedAt, so resumed tasks need fresh timing
     existingTask.startedAt = new Date()
+    // The earlier run's answer stays in the session; until this run writes its own, the child is not done.
+    existingTask.runOutputSince = existingTask.startedAt.getTime()
     this.taskHistory.record(input.parentSessionId, {
       id: existingTask.id,
       sessionID: existingTask.sessionId,
@@ -2189,7 +2192,7 @@ The fallback retry session is now created and can be inspected directly.
           return resolved?.isCurrent ? resolved.task : undefined
         },
         idleDeferralTimers: this.idleDeferralTimers,
-        validateSessionHasOutput: (id, ownMessagesSince) => this.validateSessionHasOutput(id, ownMessagesSince),
+        validateSessionHasOutput: (id, outputSince) => this.validateSessionHasOutput(id, outputSince),
         checkSessionTodos: (id) => this.checkSessionTodos(id),
         tryCompleteTask: (task, source) => this.tryCompleteTask(task, source),
         emitIdleEvent: (sessionID) => this.handleEvent({ type: "session.idle", properties: { sessionID } }),
@@ -2685,11 +2688,12 @@ The task was re-queued on a fallback model after a retryable failure.
   /**
    * Validates that a session has actual assistant/tool output before marking complete.
    * Prevents premature completion when session.idle fires before agent responds. A fork child's session starts with
-   * its parent's copied output, so `ownMessagesSince` counts only messages created after the fork.
+   * its parent's copied output and a resumed child's holds its earlier run, so `outputSince` (`taskOutputSince`)
+   * counts only messages created from then on.
    */
-  private async validateSessionHasOutput(sessionID: string, ownMessagesSince?: number): Promise<boolean> {
-    // The replayed copy of a fork's parent fills this cache too, so a fork always reads its own messages.
-    if (ownMessagesSince === undefined && this.observedOutputSessions.has(sessionID)) {
+  private async validateSessionHasOutput(sessionID: string, outputSince?: number): Promise<boolean> {
+    // The replayed copy of a fork's parent and a resumed child's earlier run fill this cache too, so both read their own messages.
+    if (outputSince === undefined && this.observedOutputSessions.has(sessionID)) {
       return true
     }
 
@@ -2708,9 +2712,9 @@ The task was re-queued on a fallback model after a retryable failure.
         { preferResponseOnMissingData: true },
       )
       const messages =
-        ownMessagesSince === undefined
+        outputSince === undefined
           ? all
-          : all.filter((message) => (message.info?.time?.created ?? 0) >= ownMessagesSince)
+          : all.filter((message) => (message.info?.time?.created ?? 0) >= outputSince)
 
       // Check for at least one assistant or tool message
       const hasAssistantOrToolMessage = messages.some(
@@ -2722,9 +2726,9 @@ The task was re-queued on a fallback model after a retryable failure.
         return false
       }
 
-      // A fork's own turn that finished counts even without text: its notice then reports that it has no answer.
+      // A fork's or resumed run's own turn that finished counts even without text: its notice then reports that it has no answer.
       if (
-        ownMessagesSince !== undefined &&
+        outputSince !== undefined &&
         messages.some(
           (m) => m.info?.role === "assistant" && (m.info.finish !== undefined || m.info.time?.completed !== undefined),
         )
@@ -3692,7 +3696,7 @@ The task was re-queued on a fallback model after a retryable failure.
             sessionGoneFromStatus && (task.consecutiveMissedPolls ?? 0) >= MIN_SESSION_GONE_POLLS
           const completionSource =
             sessionStatus?.type === "idle" ? "polling (idle status)" : "polling (session gone from status)"
-          const hasValidOutput = await this.validateSessionHasOutput(sessionID, task.ownMessagesSince)
+          const hasValidOutput = await this.validateSessionHasOutput(sessionID, taskOutputSince(task))
           if (!hasValidOutput) {
             if (sessionGoneThresholdReached) {
               const sessionExists = await this.verifySessionExists(sessionID)

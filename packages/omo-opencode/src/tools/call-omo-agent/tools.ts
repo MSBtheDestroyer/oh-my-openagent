@@ -19,6 +19,8 @@ import { createOrGetSession } from "./session-creator"
 import { processMessages } from "./message-processor"
 import { waitForCompletion } from "./completion-poller"
 import { getFirstFallbackModel } from "../../agents/builtin-agents/model-resolution"
+import { inheritCybersecFallbackChain, inheritCybersecModel, isCybersecModel } from "../../shared/cybersec-inheritance"
+import { resolveParentContext } from "../delegate-task/parent-context-resolver"
 
 function createSyncExecutorDeps(
   modelFallbackControllerAccessor?: ModelFallbackControllerAccessor,
@@ -109,6 +111,29 @@ function resolveModelAndFallbackChain(args: {
   }
 }
 
+/**
+ * Under a parent on `anthropic-cybersec`, an anthropic model or fallback entry
+ * resolved for the child moves to `anthropic-cybersec` when listed there
+ * (`../../shared/cybersec-inheritance`).
+ */
+async function inheritParentCybersec(
+  client: PluginInput["client"],
+  toolCtx: ToolContextWithMetadata,
+  agent: string,
+  resolved: { model: DelegatedModelConfig | undefined; fallbackChain: FallbackEntry[] | undefined },
+): Promise<{ model: DelegatedModelConfig | undefined; fallbackChain: FallbackEntry[] | undefined }> {
+  const touchesAnthropic = resolved.model?.providerID === "anthropic" ||
+    resolved.fallbackChain?.some((entry) => entry.providers.includes("anthropic"))
+  if (!touchesAnthropic) return resolved
+  const parent = await resolveParentContext(toolCtx, client)
+  if (!isCybersecModel(parent.model)) return resolved
+  const context = { sessionID: toolCtx.sessionID, agent }
+  return {
+    model: inheritCybersecModel(parent.model, resolved.model, context),
+    fallbackChain: inheritCybersecFallbackChain(parent.model, resolved.fallbackChain, context),
+  }
+}
+
 export function createCallOmoAgent(
   ctx: PluginInput,
   backgroundManager: BackgroundManager,
@@ -161,11 +186,12 @@ export function createCallOmoAgent(
         return `Error: Agent "${normalizedAgent}" is disabled via disabled_agents configuration. Remove it from disabled_agents in your .omo/omo.jsonc to use it.`
       }
 
-      const { model: resolvedModel, fallbackChain } = resolveModelAndFallbackChain({
+      const resolved = resolveModelAndFallbackChain({
         subagentType: args.subagent_type,
         agentOverrides,
         userCategories,
       })
+      const { model: resolvedModel, fallbackChain } = await inheritParentCybersec(ctx.client, toolCtx, args.subagent_type, resolved)
 
       if (args.run_in_background) {
         if (args.session_id) {
