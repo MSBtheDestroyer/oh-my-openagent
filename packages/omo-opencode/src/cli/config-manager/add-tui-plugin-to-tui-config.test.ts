@@ -36,6 +36,24 @@ afterEach(() => {
 })
 
 describe("ensureTuiPluginEntry", () => {
+  it("preserves the TUI plugin list during a process override but allows an explicit install", () => {
+    const dir = tempConfigDir()
+    writeConfig(dir, "opencode.json", { plugin: [PLUGIN_NAME] })
+    writeConfig(dir, "tui.json", { plugin: ["some-other/tui"] })
+    const previousAutoRegistration = process.env.OMO_DISABLE_TUI_PLUGIN_AUTO_REGISTRATION
+    process.env.OMO_DISABLE_TUI_PLUGIN_AUTO_REGISTRATION = "1"
+    try {
+      ensureTuiPluginEntry({ configDir: dir, automatic: true })
+      expect(readTuiPlugins(dir)).toEqual(["some-other/tui"])
+
+      ensureTuiPluginEntry({ configDir: dir })
+      expect(readTuiPlugins(dir)).toEqual(["some-other/tui", PLUGIN_NAME])
+    } finally {
+      if (previousAutoRegistration === undefined) delete process.env.OMO_DISABLE_TUI_PLUGIN_AUTO_REGISTRATION
+      else process.env.OMO_DISABLE_TUI_PLUGIN_AUTO_REGISTRATION = previousAutoRegistration
+    }
+  })
+
   it("#given named server entry #when ensuring TUI config #then it adds package entry once and preserves others", () => {
     // given
     const dir = tempConfigDir()
