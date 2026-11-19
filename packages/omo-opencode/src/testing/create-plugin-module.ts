@@ -238,7 +238,7 @@ export function createPluginModule(overrides: Partial<PluginModuleDeps> = {}): P
       })
     }
     try {
-      ensureTuiPluginEntry()
+      ensureTuiPluginEntry({ automatic: true })
     } catch (error) {
       deps.log("[tui] tui.json self-heal failed", {
         error: error instanceof Error ? error.message : String(error),

@@ -85,7 +85,10 @@ function formatConfig(config: ConfigShape): string {
   return `${JSON.stringify(config, null, 2)}\n`
 }
 
-export function ensureTuiPluginEntry(opts: { configDir?: string } = {}): EnsureTuiPluginEntryResult {
+export function ensureTuiPluginEntry(opts: { configDir?: string; automatic?: boolean } = {}): EnsureTuiPluginEntryResult {
+  if (opts.automatic && process.env.OMO_DISABLE_TUI_PLUGIN_AUTO_REGISTRATION === "1") {
+    return { changed: false, reason: "auto-registration-disabled" }
+  }
   const configDir = opts.configDir ?? getOpenCodeConfigDir({ binary: "opencode", version: null })
   const serverConfig = readServerConfig(configDir)
   const serverEntry = serverConfig ? serverPluginEntry(serverConfig) : undefined
